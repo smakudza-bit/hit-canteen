@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: hit-canteen
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "python -m gunicorn config.wsgi:application --chdir backend"
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: TIME_ZONE
+        value: Africa/Harare
+      - key: ACCESS_TOKEN_MINUTES
+        value: "60"
+      - key: HIT_TICKET_SECRET
+        generateValue: true
+      - key: PAYNOW_INTEGRATION_ID
+        sync: false
+      - key: PAYNOW_INTEGRATION_KEY
+        sync: false
+      - key: PAYNOW_RESULT_URL
+        sync: false
+      - key: PAYNOW_RETURN_URL
+        sync: false
+      - key: PAYNOW_INCLUDE_AUTH_EMAIL
+        value: "true"
+      - key: EMAIL_NOTIFICATIONS_ENABLED
+        value: "true"
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "true"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false

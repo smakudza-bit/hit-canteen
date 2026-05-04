@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+hit_canteen.db
+.env
+staticfiles/
+postgres_data/
+.vscode/
+_tmp_report_source.txt
+temp_appjs_dump.txt
+web/.badge-snippet.tmp

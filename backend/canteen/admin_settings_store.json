@@ -1,0 +1,10 @@
+{
+  "paynow_integration_id": "",
+  "paynow_return_url": "",
+  "smtp_host": "smtp.gmail.com",
+  "default_from_email": "smakudza@gmail.com",
+  "qr_expiry_minutes": 120,
+  "email_alerts_enabled": true,
+  "fraud_alerts_enabled": true,
+  "session_timeout_minutes": 30
+}

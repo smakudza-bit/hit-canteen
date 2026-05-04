@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings | HIT Canteen Admin</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body data-page="admin-settings" class="hit-ui">
+  <div class="hit-admin-shell">
+    <aside class="hit-sidebar">{% include 'partials/admin-sidebar.html' %}</aside>
+    <main class="hit-admin-main">
+      <div class="hit-page-head">
+        <h1>Settings</h1>
+        <p>Configure payment, email, QR, notification, and security behavior.</p>
+      </div>
+
+      <section class="hit-grid-2">
+        <div class="hit-card">
+          <h2>Payment Integration Settings</h2>
+          <div class="hit-form-stack">
+            <input id="admin-setting-paynow-id" class="hit-input" placeholder="Paynow integration ID" />
+            <input id="admin-setting-paynow-return-url" class="hit-input" placeholder="Paynow return URL" />
+            <button id="admin-settings-save-payment-btn" class="hit-btn" type="button">Save Payment Settings</button>
+            <p id="admin-settings-status-payment" class="status-msg"></p>
+          </div>
+        </div>
+
+        <div class="hit-card">
+          <h2>Email Settings</h2>
+          <div class="hit-form-stack">
+            <input id="admin-setting-smtp-host" class="hit-input" placeholder="SMTP host" />
+            <input id="admin-setting-default-from-email" class="hit-input" placeholder="Default from email" />
+            <button id="admin-settings-save-email-btn" class="hit-btn" type="button">Save Email Settings</button>
+            <p id="admin-settings-status-email" class="status-msg"></p>
+          </div>
+        </div>
+
+        <div class="hit-card">
+          <h2>QR Code Expiry Settings</h2>
+          <div class="hit-form-stack">
+            <input id="admin-setting-qr-expiry" class="hit-input" type="number" min="1" max="1440" placeholder="Expiry in minutes" />
+            <button id="admin-settings-save-qr-btn" class="hit-btn" type="button">Save QR Settings</button>
+            <p id="admin-settings-status-qr" class="status-msg"></p>
+          </div>
+        </div>
+
+        <div class="hit-card">
+          <h2>Notification Settings</h2>
+          <div class="hit-form-stack">
+            <label class="hit-list-row"><span>Email Alerts</span><input id="admin-setting-email-alerts" type="checkbox" /></label>
+            <label class="hit-list-row"><span>Fraud Alerts</span><input id="admin-setting-fraud-alerts" type="checkbox" /></label>
+            <button id="admin-settings-save-notifications-btn" class="hit-btn" type="button">Save Notification Settings</button>
+            <p id="admin-settings-status-notifications" class="status-msg"></p>
+          </div>
+        </div>
+
+        <div class="hit-card">
+          <h2>Security Settings</h2>
+          <div class="hit-form-stack">
+            <input id="admin-setting-session-timeout" class="hit-input" type="number" min="1" max="1440" placeholder="Session timeout in minutes" />
+            <button id="admin-settings-save-security-btn" class="hit-btn-danger" type="button">Save Security Settings</button>
+            <p id="admin-settings-status-security" class="status-msg"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/app.js?v=20260414a"></script>
+</body>
+</html>

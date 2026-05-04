@@ -1,0 +1,21 @@
+# Core web framework
+Django==5.2.1
+djangorestframework==3.16.0
+djangorestframework-simplejwt==5.5.0
+
+# Configuration
+python-decouple==3.8
+dj-database-url==2.2.0
+django-cors-headers==4.7.0
+
+# Business features (QR generation)
+qrcode==8.2
+Pillow==11.2.1; python_version < "3.14"
+Pillow>=11.3.0; python_version >= "3.14"
+
+# Production serving
+gunicorn==23.0.0
+whitenoise==6.9.0
+
+# Database driver (PostgreSQL in Docker/prod)
+psycopg[binary]==3.2.10

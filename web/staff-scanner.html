@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scan Student QR | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body data-page="staff-scanner" class="hit-ui hit-scanner-shell">
+  <main class="hit-main hit-stack hit-mobile-scanner">
+    <div class="hit-page-head hit-page-head--scanner">
+      <h1>Meal Scanner</h1>
+      <p>Scan student QR code</p>
+    </div>
+
+    <section class="staff-scanner-card">
+      <div class="hit-scanner-stage">
+        <div id="scanner-reader" class="hit-scanner-frame staff-scanner-frame"></div>
+        <div class="pay-scanner-grid" aria-hidden="true"></div>
+        <div class="hit-scanner-line staff-scanner-line" aria-hidden="true"></div>
+      </div>
+
+      <div class="pay-scanner-actions">
+        <button id="start-scanner-btn" class="hit-btn-gold hit-btn-lg" type="button">Start Camera</button>
+        <button id="stop-scanner-btn" class="hit-btn-secondary hit-btn-lg" type="button">Cancel</button>
+      </div>
+      <p id="scanner-status" class="status-msg"></p>
+    </section>
+
+    <section class="hit-card scanner-confirm-shell">
+      <div id="scanner-result-card" class="scanner-result-card pending" aria-live="polite">
+        <div id="scanner-result-icon" class="scanner-result-icon pending" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 11h-2V7h2Zm0 4h-2v-2h2Z"/></svg>
+        </div>
+        <span class="scanner-result-badge pending">Waiting</span>
+        <h3 id="scanner-result-title">Ready to scan</h3>
+        <p id="scanner-result-message">Scan a student QR code to verify a meal quickly.</p>
+        <div id="scanner-result-details" class="scanner-result-details" hidden></div>
+      </div>
+
+      <div class="hit-field" style="margin-top:16px;">
+        <label class="hit-label" for="scanner-manual-token">Manual Token Entry</label>
+        <textarea class="hit-textarea" id="scanner-manual-token" placeholder="Paste token here"></textarea>
+      </div>
+      <button id="scanner-manual-validate-btn" class="hit-btn" type="button" style="margin-top:16px;">Validate Token</button>
+    </section>
+
+    <section class="staff-scanner-actions">
+      <a class="hit-btn-secondary hit-btn-lg" href="/staff/">Add Meal</a>
+      <a class="hit-btn-secondary hit-btn-lg" href="/staff/">Top Up Wallet</a>
+      <a class="hit-btn-secondary hit-btn-lg" href="/staff-transactions/">View Orders</a>
+    </section>
+  </main>
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script src="/static/app.js?v=20260414a"></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hardware Hyper Zimbabwe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="hardware-hyper.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">HH</div>
+          <div>
+            <p class="eyebrow">Built for Zimbabwe</p>
+            <h1>Hardware Hyper</h1>
+          </div>
+        </div>
+        <form class="searchbar" id="search-form">
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Search tools, cement, paint, plumbing, roofing..."
+            aria-label="Search products"
+          />
+          <button type="submit">Search</button>
+        </form>
+        <nav class="user-actions" aria-label="Quick actions">
+          <button class="ghost-pill">Account</button>
+          <button class="ghost-pill">Orders</button>
+          <button class="ghost-pill" id="wishlist-trigger">
+            Wishlist <span id="wishlist-count">0</span>
+          </button>
+          <button class="accent-pill" id="cart-trigger">
+            Cart <span id="cart-count">0</span>
+          </button>
+        </nav>
+      </header>
+
+      <div class="category-strip" id="category-strip"></div>
+
+      <main>
+        <section class="hero-panel">
+          <div class="hero-copy">
+            <p class="eyebrow">Contractor-grade marketplace</p>
+            <h2>Everything for the next build, repair, and renovation.</h2>
+            <p class="hero-text">
+              Shop power tools, building materials, plumbing supplies, and
+              electrical equipment with local delivery, click-and-collect, and
+              Zimbabwe-friendly checkout options.
+            </p>
+            <div class="hero-cta">
+              <a href="#catalog" class="cta-primary">Shop materials</a>
+              <a href="#contractor" class="cta-secondary">Bulk pricing</a>
+            </div>
+            <div class="hero-metrics">
+              <article>
+                <strong>2hr</strong>
+                <span>Harare express dispatch</span>
+              </article>
+              <article>
+                <strong>ZiG/USD</strong>
+                <span>Dual-currency display</span>
+              </article>
+              <article>
+                <strong>24/7</strong>
+                <span>WhatsApp order support</span>
+              </article>
+            </div>
+          </div>
+          <div class="hero-card-grid">
+            <article class="deal-card feature-card">
+              <p class="deal-label">Flash Sale</p>
+              <h3>Makita combo kits up to 18% off</h3>
+              <p>Popular with electricians, fitters, and home renovators.</p>
+            </article>
+            <article class="deal-card">
+              <p class="deal-label">Bulk Deal</p>
+              <h3>Cement pallets for site teams</h3>
+              <p>Volume pricing and delivery scheduling by province.</p>
+            </article>
+            <article class="deal-card">
+              <p class="deal-label">Project Tools</p>
+              <h3>Roofing calculator included</h3>
+              <p>Estimate sheets, fasteners, and ridge caps in one flow.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="info-ribbon">
+          <div>
+            <span>Payments</span>
+            <strong>EcoCash, OneMoney, bank transfer, cash on delivery</strong>
+          </div>
+          <div>
+            <span>Service</span>
+            <strong>Click &amp; collect, depot pickup, contractor quotes</strong>
+          </div>
+          <div>
+            <span>Coverage</span>
+            <strong>Harare, Bulawayo, Gweru, Mutare, Masvingo and more</strong>
+          </div>
+        </section>
+
+        <section class="content-grid" id="catalog">
+          <aside class="filter-panel">
+            <div class="panel-head">
+              <p class="eyebrow">Browse</p>
+              <h3>Filters</h3>
+            </div>
+
+            <label class="filter-group">
+              <span>Category</span>
+              <select id="category-filter">
+                <option value="All">All categories</option>
+              </select>
+            </label>
+
+            <label class="filter-group">
+              <span>Price range</span>
+              <select id="price-filter">
+                <option value="All">Any price</option>
+                <option value="0-50">Under $50</option>
+                <option value="50-200">$50 - $200</option>
+                <option value="200-500">$200 - $500</option>
+                <option value="500+">$500+</option>
+              </select>
+            </label>
+
+            <label class="filter-group">
+              <span>Sort by</span>
+              <select id="sort-filter">
+                <option value="featured">Featured</option>
+                <option value="price-asc">Price: Low to high</option>
+                <option value="price-desc">Price: High to low</option>
+                <option value="rating">Top rated</option>
+              </select>
+            </label>
+
+            <div class="promo-block">
+              <p class="eyebrow">Deal of the day</p>
+              <h4>Roofing bundle</h4>
+              <p>Sheets, screws, waterproof tape, and ridge caps for growing sites.</p>
+              <strong>Save 12%</strong>
+            </div>
+
+            <div class="promo-block" id="contractor">
+              <p class="eyebrow">Contractor portal</p>
+              <h4>Bulk request workflow</h4>
+              <p>Submit quantities for cement, bricks, pipes, and cabling in one quote.</p>
+              <button class="ghost-fill">Request quote</button>
+            </div>
+          </aside>
+
+          <section class="catalog-panel">
+            <div class="catalog-header">
+              <div>
+                <p class="eyebrow">Marketplace</p>
+                <h3>Featured hardware products</h3>
+              </div>
+              <p id="results-summary">Loading products...</p>
+            </div>
+            <div class="product-grid" id="product-grid"></div>
+          </section>
+        </section>
+
+        <section class="insight-grid">
+          <article class="insight-panel">
+            <p class="eyebrow">Frequently bought together</p>
+            <h3>Concrete crew starter pack</h3>
+            <p>
+              Cement, gloves, wheelbarrow, spirit level, and a contractor bulk
+              quote path designed for active building sites.
+            </p>
+          </article>
+          <article class="insight-panel">
+            <p class="eyebrow">Why customers trust us</p>
+            <ul class="review-list">
+              <li>"Quick delivery and clear stock levels for urgent jobs."</li>
+              <li>"Dual pricing helps us budget across projects."</li>
+              <li>"The checkout feels simple even for larger orders."</li>
+            </ul>
+          </article>
+          <article class="insight-panel">
+            <p class="eyebrow">Smart tools</p>
+            <h3>Material calculators and delivery tracking</h3>
+            <p>
+              Estimate paint, roofing sheets, and cement needs before you
+              checkout, then monitor dispatch progress by location.
+            </p>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <aside class="drawer" id="cart-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow">Checkout</p>
+          <h3>Your cart</h3>
+        </div>
+        <button class="drawer-close" id="drawer-close" aria-label="Close cart">
+          x
+        </button>
+      </div>
+      <div class="drawer-body">
+        <div id="cart-items" class="cart-items"></div>
+        <div class="checkout-panel">
+          <h4>Delivery</h4>
+          <div class="checkout-grid">
+            <input type="text" placeholder="Full name" />
+            <input type="text" placeholder="Phone number" />
+            <input type="text" placeholder="City / Province" />
+            <select>
+              <option>EcoCash</option>
+              <option>OneMoney</option>
+              <option>Bank Transfer</option>
+              <option>Cash on Delivery</option>
+            </select>
+          </div>
+          <div class="totals">
+            <div><span>Subtotal</span><strong id="cart-subtotal">$0.00</strong></div>
+            <div><span>Estimated delivery</span><strong>$8.00</strong></div>
+            <div class="grand-total"><span>Total</span><strong id="cart-total">$8.00</strong></div>
+          </div>
+          <button class="checkout-button">Proceed to checkout</button>
+          <button class="whatsapp-button">Chat on WhatsApp</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="overlay" id="drawer-overlay" hidden></div>
+
+    <template id="product-card-template">
+      <article class="product-card">
+        <div class="product-media">
+          <span class="stock-chip"></span>
+          <button class="wishlist-toggle" aria-label="Toggle wishlist">+</button>
+        </div>
+        <div class="product-content">
+          <p class="product-category"></p>
+          <h4 class="product-name"></h4>
+          <p class="product-description"></p>
+          <div class="price-row">
+            <strong class="usd-price"></strong>
+            <span class="zig-price"></span>
+          </div>
+          <div class="meta-row">
+            <span class="rating"></span>
+            <span class="delivery-badge"></span>
+          </div>
+          <div class="card-actions">
+            <button class="ghost-fill quick-view">Quick view</button>
+            <button class="accent-fill add-to-cart">Add to cart</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="hardware-hyper.js"></script>
+  </body>
+</html>

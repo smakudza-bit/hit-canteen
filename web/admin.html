@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260320a" />
+</head>
+<body data-page="admin-dashboard" class="hit-ui">
+  <div class="hit-admin-shell">
+    <aside class="hit-sidebar">
+      {% include 'partials/admin-sidebar.html' %}
+    </aside>
+
+    <main class="hit-admin-main">
+      <div class="hit-toolbar">
+        <div class="hit-page-head">
+          <h1 id="admin-dashboard-greeting">Hello, Admin</h1>
+          <p id="admin-dashboard-subtitle">Monitor revenue, student activity, payment health, and operational performance from one place.</p>
+        </div>
+        <a class="hit-btn-secondary" href="/admin-login/" data-logout-link="true">Log Out</a>
+      </div>
+
+      <section class="hit-card hit-highlight" style="margin-bottom: 16px;">
+        <div class="hit-section-head">
+          <div>
+            <h2>Executive Overview</h2>
+            <p class="hit-muted">Keep the key numbers visible, and move the heavier detail into sections below.</p>
+          </div>
+        </div>
+        <div class="hit-grid-4">
+          <div class="hit-stat-card hit-highlight">
+            <h3>Total Revenue</h3>
+            <p id="admin-kpi-revenue">$0.00</p>
+          </div>
+          <div class="hit-stat-card">
+            <h3>Total Transactions</h3>
+            <p id="admin-kpi-transactions">0</p>
+          </div>
+          <div class="hit-stat-card">
+            <h3>Active Students</h3>
+            <p id="admin-kpi-students">0</p>
+          </div>
+          <div class="hit-stat-card">
+            <h3>Failed Payments</h3>
+            <p id="admin-kpi-failed">0</p>
+          </div>
+        </div>
+      </section>
+<details class="hit-toggle-card" open>
+        <summary class="hit-toggle-summary">
+          <span>Analytics Overview</span>
+          <span class="hit-toggle-summary__meta">Charts and trends</span>
+        </summary>
+        <section class="hit-grid-2">
+          <div class="hit-card">
+            <div class="hit-section-head">
+              <div>
+                <h2>Daily Revenue Chart</h2>
+                <p class="hit-muted">Last 7 days</p>
+              </div>
+            </div>
+            <div id="admin-revenue-chart" class="hit-chart-placeholder">
+              <div class="hit-chart-bars">
+                <div class="hit-chart-bar" style="height:42%"></div>
+                <div class="hit-chart-bar" style="height:60%"></div>
+                <div class="hit-chart-bar hit-chart-bar--gold" style="height:78%"></div>
+                <div class="hit-chart-bar" style="height:66%"></div>
+                <div class="hit-chart-bar" style="height:82%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hit-card">
+            <div class="hit-section-head">
+              <div>
+                <h2>Weekly Transactions Chart</h2>
+                <p class="hit-muted">Operational volume</p>
+              </div>
+            </div>
+            <div id="admin-transactions-chart" class="hit-chart-placeholder">
+              <div class="hit-chart-bars">
+                <div class="hit-chart-bar hit-chart-bar--gold" style="height:58%"></div>
+                <div class="hit-chart-bar" style="height:48%"></div>
+                <div class="hit-chart-bar" style="height:72%"></div>
+                <div class="hit-chart-bar" style="height:64%"></div>
+                <div class="hit-chart-bar hit-chart-bar--gold" style="height:88%"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </details>
+
+      <details class="hit-toggle-card" open>
+        <summary class="hit-toggle-summary">
+          <span>Recent Activity</span>
+          <span class="hit-toggle-summary__meta">Operational timeline</span>
+        </summary>
+        <section class="hit-card">
+          <div class="hit-table-wrap">
+            <table class="hit-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Activity</th>
+                  <th>User</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="admin-activity-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </details>
+    </main>
+  </div>
+
+  <script src="/static/app.js?v=20260414a"></script>
+</body>
+</html>
+

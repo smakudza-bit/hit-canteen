@@ -1,0 +1,82 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
+4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+5 0 obj << /Length 1827 >> stream
+BT
+/F1 22 Tf
+50 790 Td
+(HIT Canteen App Summary) Tj
+0 -18 Td
+/F1 13 Tf
+(Project overview) Tj
+0 -14 Td
+/F1 11 Tf
+(HIT Canteen is a university canteen payment and meal collection platform built with a Django) Tj
+0 -14 Td
+(backend and a responsive web frontend for students, staff, and administrators.) Tj
+0 -18 Td
+/F1 13 Tf
+(Core student features) Tj
+0 -14 Td
+/F1 11 Tf
+(- Secure registration, login, and email verification) Tj
+0 -14 Td
+(- Wallet balance, Paynow top up, transaction history, and QR-based meal access) Tj
+0 -14 Td
+(- Meal browsing, cart checkout, QR ticket generation, and profile management) Tj
+0 -18 Td
+/F1 13 Tf
+(Core staff features) Tj
+0 -14 Td
+/F1 11 Tf
+(- Add and manage meals, stock tracking, walk-in orders, and student wallet top ups) Tj
+0 -14 Td
+(- QR scanner for validating student meal tickets and confirming successful collections) Tj
+0 -14 Td
+(- Daily operational tools including served meals, alerts, forecasting, and reconciliation) Tj
+0 -18 Td
+/F1 13 Tf
+(Core admin features) Tj
+0 -14 Td
+/F1 11 Tf
+(- Dashboard for revenue, transactions, reports, students, staff, food items, and system) Tj
+0 -14 Td
+(settings) Tj
+0 -14 Td
+(- Exportable reporting, payment diagnostics, and platform oversight across all roles) Tj
+0 -18 Td
+/F1 13 Tf
+(Technology and value) Tj
+0 -14 Td
+/F1 11 Tf
+(The system combines Django, Django REST Framework, QR verification, wallet accounting, Paynow) Tj
+0 -14 Td
+(integration, and mobile-first interface design to make campus meal payments faster, trackable,) Tj
+0 -14 Td
+(and easier to manage.) Tj
+0 -18 Td
+/F1 13 Tf
+(Outcome) Tj
+0 -14 Td
+/F1 11 Tf
+(The app delivers a practical digital canteen workflow: students pay and collect with less) Tj
+0 -14 Td
+(friction, staff verify faster, and administrators maintain visibility over finance and) Tj
+0 -14 Td
+(operations.) Tj
+ET
+endstream endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+2190
+%%EOF

@@ -1,0 +1,15 @@
+name: hardware_hyper_flutter
+description: Hardware Hyper Zimbabwe storefront built with Flutter.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

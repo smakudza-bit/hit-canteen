@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Staff Login | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body data-page="staff-login" class="hit-ui">
+  <main class="hit-auth">
+    <section class="hit-auth__card">
+      <div class="hit-auth__header">
+        <div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div>
+        <div class="hit-page-head">
+          <h1>HIT Canteen Staff</h1>
+          <p>Sign in quickly to scan student QR codes, verify payments, and manage operations.</p>
+        </div>
+      </div>
+      <form id="staff-login-form" class="hit-form-stack">
+        <div class="hit-field">
+          <label class="hit-label" for="staff-login-email">Staff Email</label>
+          <input class="hit-input" id="staff-login-email" type="email" placeholder="staff@hit.ac.zw" required />
+        </div>
+        <div class="hit-field">
+          <label class="hit-label" for="staff-login-password">Password</label>
+          <div class="hit-password-wrap">
+            <input class="hit-input" id="staff-login-password" type="password" placeholder="Enter password" required />
+            <button class="hit-password-toggle" type="button" data-toggle-password="staff-login-password">Show</button>
+          </div>
+        </div>
+        <button class="hit-btn" type="submit">Log In</button>
+      </form>
+      <p id="staff-login-status" class="status-msg"></p>
+      <div class="hit-demo-strip">
+        <span>Demo: <strong>staff@hit.ac.zw</strong> / <strong>Demo@1234</strong></span>
+        <button id="staff-demo-fill-btn" class="hit-btn-gold" type="button">Use Demo Login</button>
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js?v=20260414a"></script>
+  <script>
+    (function () {
+      function bindFallback() {
+        if (window.__hitStaffLoginBound) return;
+        const form = document.getElementById('staff-login-form');
+        const email = document.getElementById('staff-login-email');
+        const password = document.getElementById('staff-login-password');
+        const status = document.getElementById('staff-login-status');
+        const demo = document.getElementById('staff-demo-fill-btn');
+        const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+
+        function setStatus(message, ok) {
+          if (!status) return;
+          status.innerHTML = message || '';
+          status.className = ok === false ? 'status-msg error' : 'status-msg success';
+        }
+
+        function setBusy(busy, label) {
+          if (!submitButton) return;
+          if (busy) {
+            submitButton.dataset.originalLabel = submitButton.dataset.originalLabel || submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = label || 'Logging in...';
+          } else {
+            submitButton.disabled = false;
+            submitButton.textContent = submitButton.dataset.originalLabel || 'Log In';
+          }
+        }
+
+        demo && demo.addEventListener('click', function () {
+          if (email) email.value = 'staff@hit.ac.zw';
+          if (password) password.value = 'Demo@1234';
+          setStatus('Signing in with demo staff account...');
+          if (form) form.requestSubmit();
+        });
+
+        form && form.addEventListener('submit', async function (event) {
+          event.preventDefault();
+          const payload = {
+            email: email && email.value ? email.value.trim() : '',
+            password: password ? password.value : ''
+          };
+          if (!payload.email || !payload.password) {
+            setStatus('Email and password are required.', false);
+            return;
+          }
+          setBusy(true, 'Logging in...');
+          setStatus('Checking your account...');
+          try {
+            const response = await fetch('/api/v1/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const raw = await response.text();
+            let data = {};
+            try {
+              data = raw ? JSON.parse(raw) : {};
+            } catch (error) {
+              data = { detail: raw || 'Login failed.' };
+            }
+            if (!response.ok) {
+              setBusy(false);
+              setStatus(data.detail || data.message || 'Login failed.', false);
+              return;
+            }
+            localStorage.setItem('hit_token', data.access_token || '');
+            setStatus('Login successful. Opening your portal...');
+            window.location.replace('/staff/');
+          } catch (error) {
+            setBusy(false);
+            setStatus(error.message || 'Unable to log in right now.', false);
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(bindFallback, 0); });
+      } else {
+        setTimeout(bindFallback, 0);
+      }
+    })();
+  </script>
+</body>
+</html>
+
+
