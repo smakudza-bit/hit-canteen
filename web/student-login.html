@@ -3,140 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <title>HIT Accommodation and Canteen Portal</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
 </head>
-<body data-page="student-login" class="hit-ui">
-  <main class="hit-auth">
-    <section class="hit-auth__card">
-      <div class="hit-auth__header">
-        <div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div>
-        <div class="hit-page-head">
-          <h1>Welcome Back</h1>
-          <p>Log in once with your HIT account. Your credentials will open the correct student, staff, or admin portal automatically.</p>
-        </div>
+<body data-page="student-login" class="hit-ui hit-split-login-page">
+  <main class="hit-split-login">
+    <section class="hit-split-login__visual">
+      <div class="hit-split-login__overlay"></div>
+      <div class="hit-split-login__copy">
+        <h1>Welcome to HIT Canteen</h1>
+        <p>Sign in to access your account</p>
       </div>
-      <form id="student-login-form" class="hit-form-stack">
-        <div class="hit-field">
-          <label class="hit-label" for="login-email">HIT Email</label>
-          <input class="hit-input" id="login-email" type="email" placeholder="name@hit.ac.zw" required />
+    </section>
+
+    <section class="hit-split-login__form-side">
+      <div class="hit-split-login__card">
+        <div class="hit-split-login__logo">
+          <div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div>
         </div>
-        <div class="hit-field">
-          <label class="hit-label" for="login-password">Password</label>
-          <div class="hit-password-wrap">
-            <input class="hit-input" id="login-password" type="password" placeholder="Enter password" required />
+
+        <div class="hit-split-login__heading">
+          <h2>Sign In</h2>
+          <p>Please sign in with your HIT account</p>
+        </div>
+
+        <form id="student-login-form" class="hit-split-login__form">
+          <input class="hit-input hit-split-login__input" id="login-email" type="email" placeholder="name@hit.ac.zw" required />
+          <div class="hit-password-wrap hit-split-login__password-wrap">
+            <input class="hit-input hit-split-login__input" id="login-password" type="password" placeholder="Enter password" required />
             <button class="hit-password-toggle" type="button" data-toggle-password="login-password">Show</button>
           </div>
+          <button class="hit-split-login__submit" type="submit">Sign In with HIT Account</button>
+        </form>
+
+        <p id="login-status" class="status-msg hit-split-login__status"></p>
+
+        <div class="hit-split-login__meta">
+          <a href="/student-forgot-password/">Forgot Password?</a>
+          <a href="/register/">Create Account</a>
         </div>
-        <button class="hit-btn" type="submit">Log In</button>
-      </form>
-      <p id="login-status" class="status-msg"></p>
-      <div class="hit-link-row">
-        <a href="/student-forgot-password/">Forgot Password?</a>
-        <a href="/register/">Sign Up</a>
-      </div>
-      <div class="hit-demo-strip">
-        <span>Demo accounts use the same password: <strong>Demo@1234</strong></span>
-      </div>
-      <div class="hit-inline-actions">
-        <button id="student-demo-fill-btn" class="hit-btn-gold" type="button">Student Demo</button>
-        <button id="staff-demo-fill-btn" class="hit-btn-secondary" type="button">Staff Demo</button>
-        <button id="admin-demo-fill-btn" class="hit-btn-secondary" type="button">Admin Demo</button>
+
+        <div class="hit-split-login__demo">
+          <span>Quick access:</span>
+          <button id="student-demo-fill-btn" class="hit-split-login__demo-btn" type="button">Student Demo</button>
+          <button id="staff-demo-fill-btn" class="hit-split-login__demo-btn" type="button">Staff Demo</button>
+          <button id="admin-demo-fill-btn" class="hit-split-login__demo-btn" type="button">Admin Demo</button>
+        </div>
       </div>
     </section>
   </main>
   <script src="/static/app.js?v=20260414a"></script>
-  <script>
-    (function () {
-      function bindFallback() {
-        if (window.__hitStudentLoginBound) return;
-        const form = document.getElementById('student-login-form');
-        const email = document.getElementById('login-email');
-        const password = document.getElementById('login-password');
-        const status = document.getElementById('login-status');
-        const demo = document.getElementById('student-demo-fill-btn');
-        const submitButton = form ? form.querySelector('button[type="submit"]') : null;
-
-        function setStatus(message, ok) {
-          if (!status) return;
-          status.innerHTML = message || '';
-          status.className = ok === false ? 'status-msg error' : 'status-msg success';
-        }
-
-        function setBusy(busy, label) {
-          if (!submitButton) return;
-          if (busy) {
-            submitButton.dataset.originalLabel = submitButton.dataset.originalLabel || submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = label || 'Logging in...';
-          } else {
-            submitButton.disabled = false;
-            submitButton.textContent = submitButton.dataset.originalLabel || 'Log In';
-          }
-        }
-
-        demo && demo.addEventListener('click', function () {
-          if (email) email.value = 'student@hit.ac.zw';
-          if (password) password.value = 'Demo@1234';
-          setStatus('Signing in with demo student account...');
-          if (form) form.requestSubmit();
-        });
-
-        form && form.addEventListener('submit', async function (event) {
-          event.preventDefault();
-          const payload = {
-            email: email && email.value ? email.value.trim() : '',
-            password: password ? password.value : ''
-          };
-          if (!payload.email || !payload.password) {
-            setStatus('Email and password are required.', false);
-            return;
-          }
-          setBusy(true, 'Logging in...');
-          setStatus('Checking your account...');
-          try {
-            const response = await fetch('/api/v1/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            const raw = await response.text();
-            let data = {};
-            try {
-              data = raw ? JSON.parse(raw) : {};
-            } catch (error) {
-              data = { detail: raw || 'Login failed.' };
-            }
-            if (!response.ok) {
-              setBusy(false);
-              setStatus(data.detail || data.message || 'Login failed.', false);
-              return;
-            }
-            localStorage.setItem('hit_token', data.access_token || '');
-            var role = String(data.role || '').toLowerCase();
-            setStatus('Login successful. Opening your portal...');
-            if (role === 'admin') {
-              window.location.replace('/admin/');
-            } else if (role === 'staff') {
-              window.location.replace('/staff/');
-            } else {
-              window.location.replace('/student/');
-            }
-          } catch (error) {
-            setBusy(false);
-            setStatus(error.message || 'Unable to log in right now.', false);
-          }
-        });
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { setTimeout(bindFallback, 0); });
-      } else {
-        setTimeout(bindFallback, 0);
-      }
-    })();
-  </script>
 </body>
 </html>
+
+
 
 

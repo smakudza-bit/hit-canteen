@@ -11,8 +11,14 @@ function apiUrl(path) {
 }
 
 let token = localStorage.getItem("hit_token") || "";
+let currentUserRole = localStorage.getItem("hit_role") || "";
 let cart = JSON.parse(localStorage.getItem("hit_cart") || "[]");
 let latestTickets = [];
+const AWAY_AUTO_LOGOUT_MS = 60 * 1000;
+let awayLogoutTimer = null;
+let awayLogoutTicker = null;
+let awayLogoutRole = "";
+let awaySince = 0;
 
 const demoMeals = [
   { id: 1, name: "Sadza + Beef Stew", price: 2.5, description: "Traditional meal" },
@@ -29,6 +35,45 @@ const demoSlots = [
 
 function id(name) { return document.getElementById(name); }
 function page() { return document.body.dataset.page; }
+
+function decodeJwtPayload(tokenValue) {
+  const raw = String(tokenValue || '').trim();
+  if (!raw || !raw.includes('.')) return null;
+  try {
+    const [, payload] = raw.split('.');
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(window.atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function setCurrentUserRole(role) {
+  const normalized = normalizePortalTarget(role || '');
+  currentUserRole = normalized && ['student', 'staff', 'admin'].includes(normalized) ? normalized : '';
+  if (currentUserRole) {
+    localStorage.setItem('hit_role', currentUserRole);
+  } else {
+    localStorage.removeItem('hit_role');
+  }
+}
+
+function getCurrentUserRole() {
+  if (currentUserRole) return normalizePortalTarget(currentUserRole);
+  const payload = decodeJwtPayload(token);
+  const inferredRole = payload?.role ? normalizePortalTarget(payload.role) : '';
+  if (inferredRole) {
+    setCurrentUserRole(inferredRole);
+    return inferredRole;
+  }
+  const storedRole = normalizePortalTarget(localStorage.getItem('hit_role') || '');
+  if (storedRole) {
+    setCurrentUserRole(storedRole);
+    return storedRole;
+  }
+  return '';
+}
 
 function showStatus(targetId, message, ok = true) {
   const el = id(targetId);
@@ -155,7 +200,151 @@ function redirectToPortalForRole(role) {
 }
 
 function loginPath(targetPage) {
+  const role = normalizePortalTarget(targetPage);
+  if (role === 'staff') return '/staff-login/';
+  if (role === 'admin') return '/admin-login/';
   return '/login/';
+}
+
+function awayLogoutKey(targetPage) {
+  return `hit_away_since_${normalizePortalTarget(targetPage)}`;
+}
+
+function setAwayLogoutNotice(message) {
+  if (!message) return;
+  sessionStorage.setItem('hit_logout_notice', String(message));
+}
+
+function consumeAwayLogoutNotice() {
+  const raw = sessionStorage.getItem('hit_logout_notice');
+  if (raw) sessionStorage.removeItem('hit_logout_notice');
+  return raw || '';
+}
+
+function ensureAwayLogoutBanner() {
+  let banner = id('hit-away-logout-banner');
+  if (banner) return banner;
+  banner = document.createElement('div');
+  banner.id = 'hit-away-logout-banner';
+  banner.className = 'hit-away-logout-banner';
+  document.body.appendChild(banner);
+  return banner;
+}
+
+function hideAwayLogoutBanner() {
+  const banner = id('hit-away-logout-banner');
+  if (!banner) return;
+  banner.classList.remove('is-active');
+  banner.textContent = '';
+}
+
+function updateAwayLogoutBanner(remainingMs) {
+  const banner = ensureAwayLogoutBanner();
+  const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+  const minutes = String(Math.floor(remaining / 60)).padStart(1, '0');
+  const seconds = String(remaining % 60).padStart(2, '0');
+  banner.textContent = `Leaving this page will log you out in ${minutes}:${seconds}.`;
+  banner.classList.add('is-active');
+}
+
+function clearAwayLogoutTracking(role = awayLogoutRole || page()) {
+  if (awayLogoutTimer) {
+    clearTimeout(awayLogoutTimer);
+    awayLogoutTimer = null;
+  }
+  if (awayLogoutTicker) {
+    clearInterval(awayLogoutTicker);
+    awayLogoutTicker = null;
+  }
+  awaySince = 0;
+  awayLogoutRole = normalizePortalTarget(role);
+  sessionStorage.removeItem(awayLogoutKey(awayLogoutRole));
+  hideAwayLogoutBanner();
+}
+
+function forcePortalLogout(targetPage, reason = '') {
+  const role = normalizePortalTarget(targetPage);
+  markPortalLogout(role);
+  clearAwayLogoutTracking(role);
+  setToken('');
+  if (reason) setAwayLogoutNotice(reason);
+  window.location.replace('/');
+}
+
+function startAwayLogoutTracking(targetPage) {
+  const role = normalizePortalTarget(targetPage);
+  clearAwayLogoutTracking(role);
+  awayLogoutRole = role;
+  awaySince = Date.now();
+  sessionStorage.setItem(awayLogoutKey(role), String(awaySince));
+  updateAwayLogoutBanner(AWAY_AUTO_LOGOUT_MS);
+  awayLogoutTicker = window.setInterval(() => {
+    updateAwayLogoutBanner(AWAY_AUTO_LOGOUT_MS - (Date.now() - awaySince));
+  }, 250);
+  awayLogoutTimer = window.setTimeout(() => {
+    forcePortalLogout(role, 'You were logged out after leaving the portal for 1 minute.');
+  }, AWAY_AUTO_LOGOUT_MS);
+}
+
+function ensureAwayLogoutMonitor(targetPage) {
+  const role = normalizePortalTarget(targetPage);
+  if (document.body?.dataset.awayLogoutBound === role) {
+    const stored = Number(sessionStorage.getItem(awayLogoutKey(role)) || 0);
+    if (stored && Date.now() - stored >= AWAY_AUTO_LOGOUT_MS) {
+      forcePortalLogout(role, 'You were logged out after leaving the portal for 1 minute.');
+    }
+    return;
+  }
+  if (document.body) {
+    document.body.dataset.awayLogoutBound = role;
+  }
+  awayLogoutRole = role;
+
+  const stored = Number(sessionStorage.getItem(awayLogoutKey(role)) || 0);
+  if (stored && Date.now() - stored >= AWAY_AUTO_LOGOUT_MS) {
+    forcePortalLogout(role, 'You were logged out after leaving the portal for 1 minute.');
+    return;
+  }
+  if (stored) {
+    awaySince = stored;
+    const remaining = AWAY_AUTO_LOGOUT_MS - (Date.now() - stored);
+    if (remaining > 0) {
+      updateAwayLogoutBanner(remaining);
+      awayLogoutTicker = window.setInterval(() => {
+        updateAwayLogoutBanner(AWAY_AUTO_LOGOUT_MS - (Date.now() - awaySince));
+      }, 250);
+      awayLogoutTimer = window.setTimeout(() => {
+        forcePortalLogout(role, 'You were logged out after leaving the portal for 1 minute.');
+      }, remaining);
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!token) return;
+    if (document.hidden) {
+      startAwayLogoutTracking(role);
+    } else {
+      const hiddenSince = Number(sessionStorage.getItem(awayLogoutKey(role)) || 0);
+      if (hiddenSince && Date.now() - hiddenSince >= AWAY_AUTO_LOGOUT_MS) {
+        forcePortalLogout(role, 'You were logged out after leaving the portal for 1 minute.');
+      } else {
+        clearAwayLogoutTracking(role);
+      }
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (token) startAwayLogoutTracking(role);
+  });
+
+  window.addEventListener('pageshow', () => {
+    const hiddenSince = Number(sessionStorage.getItem(awayLogoutKey(role)) || 0);
+    if (hiddenSince && Date.now() - hiddenSince >= AWAY_AUTO_LOGOUT_MS) {
+      forcePortalLogout(role, 'You were logged out after leaving the portal for 1 minute.');
+    } else {
+      clearAwayLogoutTracking(role);
+    }
+  });
 }
 
 function logoutMarkerKey(targetPage) {
@@ -188,8 +377,11 @@ function setToken(accessToken) {
     clearPortalLogout('student');
     clearPortalLogout('staff');
     clearPortalLogout('admin');
+    const inferredRole = decodeJwtPayload(token)?.role || currentUserRole;
+    setCurrentUserRole(inferredRole);
   } else {
     localStorage.removeItem('hit_token');
+    setCurrentUserRole('');
   }
 }
 
@@ -199,6 +391,12 @@ function guardPortalAccess(targetPage) {
     redirectToLogin(role);
     return false;
   }
+  const currentRole = getCurrentUserRole();
+  if (currentRole && currentRole !== role) {
+    redirectToPortalForRole(currentRole);
+    return false;
+  }
+  ensureAwayLogoutMonitor(role);
   window.addEventListener('pageshow', () => {
     if (!localStorage.getItem('hit_token')) {
       window.location.replace('/');
@@ -224,6 +422,11 @@ function handleAuthErrorForPage(error, targetPage = page()) {
 }
 
 function applyVerificationMessage(targetId) {
+  const logoutNotice = consumeAwayLogoutNotice();
+  if (logoutNotice) {
+    showStatus(targetId, logoutNotice, false);
+    return;
+  }
   const params = new URLSearchParams(window.location.search);
   const state = params.get('verification');
   if (!state) return;
@@ -247,9 +450,7 @@ function bindLogout() {
     link.addEventListener('click', (event) => {
       event.preventDefault();
       const role = normalizePortalTarget(page());
-      markPortalLogout(role);
-      setToken('');
-      window.location.replace('/');
+      forcePortalLogout(role);
     });
   });
 }
@@ -284,17 +485,20 @@ function renderScannerResult(status, title, message, details = null) {
   }
   titleNode.textContent = title;
   messageNode.textContent = message;
-  if (detailsNode) {
-    if (details && typeof details === "object") {
-      detailsNode.hidden = false;
-      detailsNode.innerHTML = Object.entries(details)
-        .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")
-        .map(([label, value]) => `<div class="scanner-detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
-        .join("");
-    } else {
-      detailsNode.hidden = true;
-      detailsNode.innerHTML = "";
-    }
+    if (detailsNode) {
+      if (details && typeof details === "object") {
+        detailsNode.hidden = false;
+        detailsNode.innerHTML = Object.entries(details)
+          .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")
+          .map(([label, value]) => {
+            const isPrimary = /collection\s*no\.?|order\s*number|order\s*ref/i.test(String(label));
+            return `<div class="scanner-detail-row${isPrimary ? ' scanner-detail-row--primary' : ''}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+          })
+          .join("");
+      } else {
+        detailsNode.hidden = true;
+        detailsNode.innerHTML = "";
+      }
   }
 }
 
@@ -359,24 +563,28 @@ async function validateTicketToken(tokenValue, statusTargetId = "scan-status") {
   }
   try {
     const result = await req("/api/v1/tickets/validate-scan", "POST", { token: cleanToken });
-    showStatus(statusTargetId, `Ticket valid. Order ${result.order_ref || result.order_id} served.`);
+    const collectionNumber = result.order_ref || result.order_id;
+    showStatus(statusTargetId, `Ticket valid. Collection No. ${collectionNumber} served.`);
     if (page() === "staff-scanner") {
       let details = {
+        'Collection No.': String(collectionNumber || ''),
         Status: 'Verified',
         Time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       try {
         const order = await req(`/api/v1/orders/${result.order_id}`);
         details = {
+          'Collection No.': order.order_ref || String(collectionNumber || ''),
           'Student Name': order.student_name || `Student #${result.student_id || ''}`.trim(),
           Meal: order.meal || 'Meal',
+          Quantity: String(order.quantity ?? 1),
           Time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           Status: 'Verified',
         };
       } catch (_) {
         // Keep minimal confirmation details if order lookup fails.
       }
-      renderScannerResult("valid", "Meal Verified", `Order ${result.order_ref || result.order_id} has been marked as used.`, details);
+      renderScannerResult("valid", "Meal Verified", `Collection No. ${collectionNumber} has been marked as served.`, details);
       triggerScannerFeedback("success");
     }
     await loadOrdersForStaff();
@@ -728,11 +936,12 @@ async function loadMyTickets() {
 }
 
 function renderStaffOrders(orders) {
-  const list = id("staff-orders-list");
-  const chart = id("staff-orders-chart");
-  if (list) {
-    list.innerHTML = orders.length ? orders.map((order) => `<div class="list-item"><strong>${order.order_ref}</strong> | ${order.student_name || order.student_email || ""} | ${order.meal} x${order.quantity} | $${Number(order.total_amount).toFixed(2)} | ${order.status}</div>`).join("") : '<p class="hint">No orders available.</p>';
-  }
+    const list = id("staff-orders-list");
+    const chart = id("staff-orders-chart");
+    renderChefNextOrder(orders);
+    if (list) {
+      list.innerHTML = orders.length ? orders.map((order) => `<div class="list-item"><strong>${order.order_ref}</strong> | ${order.student_name || order.student_email || ""} | ${order.meal} x${order.quantity} | $${Number(order.total_amount).toFixed(2)} | ${order.status}</div>`).join("") : '<p class="hint">No orders available.</p>';
+    }
   if (chart) {
     if (!orders.length) {
       chart.innerHTML = '<p class="hint">No orders available.</p>';
@@ -827,6 +1036,51 @@ function populateWalkinMenu(meals) {
     optionsNode.innerHTML = '<p class="hint">No meals available right now.</p>';
     return;
   }
+
+function renderChefNextOrder(orders) {
+  const mealNode = id("chef-next-meal");
+  const studentNode = id("chef-next-student");
+  const qtyNode = id("chef-next-quantity");
+  const refNode = id("chef-next-order-ref");
+  const upNextNode = id("chef-up-next");
+  const waitingNode = id("chef-next-waiting-count");
+  const statusNode = id("chef-next-status");
+  const noteNode = id("chef-next-note");
+  if (!mealNode || !studentNode || !qtyNode || !refNode || !upNextNode || !waitingNode || !statusNode || !noteNode) return;
+
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const actionable = safeOrders
+    .filter((order) => {
+      const status = String(order.status || "").toLowerCase();
+      return !["served", "redeemed", "cancelled", "failed", "expired"].includes(status);
+    })
+    .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
+  if (!actionable.length) {
+    mealNode.textContent = "No pending meal";
+    studentNode.textContent = "Waiting for new orders";
+    qtyNode.textContent = "0 meals";
+    refNode.textContent = "-";
+    upNextNode.textContent = "No next order";
+    waitingNode.textContent = "0 more orders";
+    statusNode.textContent = "Queue clear";
+    noteNode.textContent = "New paid student orders will appear here so the chef knows what to prepare next.";
+    return;
+  }
+
+  const nextOrder = actionable[0];
+  const secondOrder = actionable[1] || null;
+  const remaining = Math.max(0, actionable.length - 1);
+  mealNode.textContent = nextOrder.meal || "Meal pending";
+  studentNode.textContent = nextOrder.student_name || nextOrder.student_email || "Student";
+  qtyNode.textContent = `${Number(nextOrder.quantity || 1)} meal${Number(nextOrder.quantity || 1) === 1 ? "" : "s"}`;
+  refNode.textContent = nextOrder.order_ref || "-";
+  upNextNode.textContent = secondOrder ? `${secondOrder.order_ref || "-"} • ${secondOrder.meal || "Meal pending"}` : "No next order";
+  waitingNode.textContent = `${remaining} more order${remaining === 1 ? "" : "s"}`;
+  statusNode.textContent = remaining > 0 ? "Line active" : "Ready now";
+  const queuedAt = nextOrder.created_at ? new Date(nextOrder.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "just now";
+  noteNode.textContent = `Queued at ${queuedAt}. Plate ${nextOrder.meal || "this meal"} for ${nextOrder.student_name || nextOrder.student_email || "the next student"} first, then move straight to the next ticket.`;
+}
   selectedMealInput.value = String(safeMeals[0].id);
   optionsNode.innerHTML = safeMeals.map((meal, index) => `
     <button class="walkin-meal-chip${index === 0 ? ' active' : ''}" type="button" data-walkin-meal-id="${meal.id}">
@@ -980,6 +1234,7 @@ async function loginRequest(emailId, passwordId) {
   if (!email || !password) return { error: "Email and password are required." };
   try {
     const data = await req("/api/v1/auth/login", "POST", { email, password });
+    setCurrentUserRole(data.role);
     setToken(data.access_token);
     return { ok: true, data };
   } catch (err) {
@@ -1181,15 +1436,67 @@ async function loadCashDepositHistory(studentId = "") {
 }
 
 function setWalletMethod(method) {
-  document.querySelectorAll(".wallet-method").forEach((button) => button.classList.toggle("active", button.dataset.walletMethod === method));
-  document.querySelectorAll(".wallet-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `wallet-panel-${method}`));
+  const normalizedMethod = method === "bank" ? "bank" : "ecocash";
+  document.querySelectorAll(".wallet-method").forEach((button) => button.classList.toggle("active", button.dataset.walletMethod === normalizedMethod));
+  document.querySelectorAll(".wallet-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `wallet-panel-${normalizedMethod}` || panel.id === "wallet-panel-paynow"));
+  const phoneField = id("wallet-paynow-phone");
+  const bankNote = id("wallet-bank-note");
+  if (phoneField) {
+    phoneField.hidden = normalizedMethod === "bank";
+    phoneField.required = normalizedMethod !== "bank";
+    if (normalizedMethod === "bank") phoneField.value = "";
+  }
+  if (bankNote) {
+    bankNote.hidden = normalizedMethod !== "bank";
+  }
+  const submitButton = id("wallet-paynow-submit");
+  if (submitButton) {
+    submitButton.textContent = normalizedMethod === "bank" ? "Continue with Bank" : "Continue with EcoCash";
+    submitButton.dataset.walletChannel = normalizedMethod === "bank" ? "bank_card" : "mobile_money";
+  }
 }
 
-function openWalletModal(method = "paynow") {
+function getSelectedStudentTopupMethod() {
+  return document.querySelector("[data-student-topup-method].selected")?.dataset.studentTopupMethod || "ecocash";
+}
+
+function setSelectedStudentTopupMethod(method) {
+  const normalizedMethod = method === "bank" ? "bank" : "ecocash";
+  document.querySelectorAll("[data-student-topup-method]").forEach((button) => {
+    button.classList.toggle("selected", button.dataset.studentTopupMethod === normalizedMethod);
+  });
+}
+
+function syncWalletTopupAmountFromPage() {
+  const pageAmount = id("student-topup-amount")?.value || "";
+  if (pageAmount && id("wallet-paynow-amount")) {
+    id("wallet-paynow-amount").value = pageAmount;
+  }
+}
+
+function getSelectedCartPaymentMethod() {
+  return document.querySelector("[data-cart-provider].selected")?.dataset.cartProvider || "mobile_money";
+}
+
+function setSelectedCartPaymentMethod(method) {
+  const normalizedMethod = method === "bank_card" ? "bank_card" : "mobile_money";
+  document.querySelectorAll("[data-cart-provider]").forEach((button) => {
+    button.classList.toggle("selected", button.dataset.cartProvider === normalizedMethod);
+  });
+  const phoneField = id("cart-mobile-money-field");
+  const phoneInput = id("cart-mobile-money-phone");
+  if (phoneField) phoneField.hidden = normalizedMethod !== "mobile_money";
+  if (phoneInput) phoneInput.required = normalizedMethod === "mobile_money";
+  const checkoutButton = id("checkout-cart-btn");
+  if (checkoutButton) checkoutButton.textContent = "Confirm Payment";
+}
+
+function openWalletModal(method = "ecocash") {
   const modal = id("wallet-topup-modal");
   if (!modal) return;
   modal.hidden = false;
   document.body.classList.add("modal-open");
+  syncWalletTopupAmountFromPage();
   setWalletMethod(method);
 }
 
@@ -1202,24 +1509,46 @@ function closeWalletModal() {
 }
 
 function bindWalletModal() {
-  id("wallet-topup-open-btn")?.addEventListener("click", () => openWalletModal("paynow"));
-  id("wallet-topup-card-btn")?.addEventListener("click", () => openWalletModal("paynow"));
+  document.querySelectorAll("[data-student-topup-method]").forEach((button) => button.addEventListener("click", () => {
+    const method = button.dataset.studentTopupMethod || "ecocash";
+    setSelectedStudentTopupMethod(method);
+  }));
+  id("wallet-topup-open-btn")?.addEventListener("click", () => {
+    const amount = Number(id("student-topup-amount")?.value || 0);
+    if (!amount) {
+      showStatus("wallet-status", "Enter the amount you want to top up first.", false);
+      return;
+    }
+    showStatus("wallet-status", "", true);
+    openWalletModal(getSelectedStudentTopupMethod());
+  });
+  id("wallet-topup-card-btn")?.addEventListener("click", () => openWalletModal(getSelectedStudentTopupMethod()));
   id("wallet-topup-close-btn")?.addEventListener("click", closeWalletModal);
   document.querySelectorAll("[data-close-wallet-modal='true']").forEach((node) => node.addEventListener("click", closeWalletModal));
   document.querySelectorAll(".wallet-method").forEach((button) => button.addEventListener("click", () => setWalletMethod(button.dataset.walletMethod)));
+  id("wallet-paynow-retry")?.addEventListener("click", () => {
+    showStatus("wallet-modal-status", "", true);
+    showStatus("wallet-status", "", true);
+    id("wallet-paynow-phone")?.focus();
+  });
 
   id("wallet-paynow-submit")?.addEventListener("click", async () => {
     const amount = Number(id("wallet-paynow-amount")?.value || 0);
-    const email = (id("wallet-paynow-email")?.value || "").trim();
-    if (!amount || !email) {
-      showStatus("wallet-modal-status", "Enter the top-up amount and payer email.", false);
+    const provider = id("wallet-paynow-submit")?.dataset.walletChannel || "mobile_money";
+    const phoneNumber = (id("wallet-paynow-phone")?.value || "").trim();
+    if (!amount) {
+      showStatus("wallet-modal-status", "Enter the top-up amount first.", false);
+      return;
+    }
+    if (provider === "mobile_money" && !phoneNumber) {
+      showStatus("wallet-modal-status", "Enter the mobile money phone number.", false);
       return;
     }
     try {
-      const data = await req("/api/v1/wallet/topup/initiate", "POST", { amount, provider: "online_payment", email }, { "Idempotency-Key": nextIdempotencyKey("topup") });
+      const data = await req("/api/v1/wallet/topup/initiate", "POST", { amount, provider, phone_number: phoneNumber }, { "Idempotency-Key": nextIdempotencyKey("topup") });
       setPendingPaynowTopupTx(data.payment_transaction_id || "");
-      showStatus("wallet-modal-status", `Paynow request created. Reference: ${data.payment_transaction_id}`);
-      showStatus("wallet-status", `Pending Paynow top-up started: ${data.payment_transaction_id}`);
+      showStatus("wallet-modal-status", provider === "mobile_money" ? "Payment request sent. Confirm it on your mobile money prompt." : "Redirecting to secure bank/card confirmation...");
+      showStatus("wallet-status", `Pending USD payment started: ${data.payment_transaction_id}`);
       if (data.redirect_url && /^https?:/i.test(data.redirect_url)) {
         window.location.href = data.redirect_url;
       }
@@ -1228,17 +1557,6 @@ function bindWalletModal() {
       if (handleAuthErrorForPage(err, 'student')) return;
       showStatus("wallet-modal-status", err.message || "Unable to start Paynow top-up.", false);
     }
-  });
-
-  id("wallet-cash-submit")?.addEventListener("click", () => {
-    const amount = Number(id("wallet-cash-amount")?.value || 0);
-    const reference = (id("wallet-cash-reference")?.value || "").trim();
-    if (!amount || !reference) {
-      showStatus("wallet-modal-status", "Enter the cash amount and receipt reference.", false);
-      return;
-    }
-    showStatus("wallet-modal-status", `Cash deposit request recorded for verification: ${reference}`);
-    showStatus("wallet-status", `Cash deposit pending verification: ${reference}`);
   });
 }
 
@@ -1253,40 +1571,29 @@ async function placeOrdersFromCart() {
     showStatus("order-status", "Enter a valid pickup slot ID.", false);
     return;
   }
-  const provider = id("cart-provider")?.value || "wallet";
+  const provider = getSelectedCartPaymentMethod();
+  const phoneNumber = (id("cart-mobile-money-phone")?.value || "").trim();
+  if (provider === "mobile_money" && !phoneNumber) {
+    showStatus("order-status", "Enter the mobile money phone number.", false);
+    return;
+  }
   try {
-    setButtonBusy(checkoutButton, true, provider === "paynow" ? "Connecting to Paynow..." : "Confirming...");
-    if (provider === "paynow") {
-      const data = await req("/api/v1/orders/paynow/initiate", "POST", {
-        slot_id: slotId,
-        items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
-      }, { "Idempotency-Key": nextIdempotencyKey("paynow-order") });
-      setPendingPaynowOrderTx(data.payment_transaction_id || "");
-      showStatus("order-status", `Paynow checkout started for $${cartTotal().toFixed(2)}. Redirecting now...`);
-      if (data.redirect_url && /^https?:/i.test(data.redirect_url)) {
-        window.location.href = data.redirect_url;
-        return;
-      }
-      showStatus("order-status", "Paynow request was created, but no redirect link was returned.", false);
+    setButtonBusy(checkoutButton, true, provider === "mobile_money" ? "Sending payment request..." : "Opening secure confirmation...");
+    const data = await req("/api/v1/orders/paynow/initiate", "POST", {
+      slot_id: slotId,
+      provider,
+      phone_number: phoneNumber,
+      items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
+    }, { "Idempotency-Key": nextIdempotencyKey("paynow-order") });
+    setPendingPaynowOrderTx(data.payment_transaction_id || "");
+    showStatus("order-status", provider === "mobile_money"
+      ? "USD payment request sent. Confirm it on your mobile money prompt."
+      : "Redirecting to secure USD bank/card confirmation...");
+    if (data.redirect_url && /^https?:/i.test(data.redirect_url)) {
+      window.location.href = data.redirect_url;
       return;
     }
-    const created = [];
-    for (const item of cart) {
-      const order = await req("/api/v1/orders", "POST", { meal_id: item.id, slot_id: slotId, quantity: item.qty }, { "Idempotency-Key": nextIdempotencyKey(`order-${item.id}`) });
-      created.push(order);
-    }
-    latestTickets = [...created, ...latestTickets].slice(0, 8);
-      renderTickets();
-      cart = [];
-      persistCart();
-      renderCart();
-      await loadWallet();
-      await loadTransactionHistory();
-      setPendingPaynowOrderTx("");
-      showStatus("order-status", "Payment successful. Opening your QR ticket...");
-      setTimeout(() => {
-        window.location.href = "/student-qr/";
-      }, 250);
+    showStatus("order-status", "Payment request was created, but no redirect link was returned.", false);
   } catch (err) {
     showStatus("order-status", err.message || "Unable to create the order.", false);
   } finally {
@@ -1536,15 +1843,109 @@ function initStaffPage() {
   bindLogout();
   applyCurrentUserGreeting('staff-dashboard-greeting', 'Staff');
   loadMenuAndSlots();
-  loadOrdersForStaff();
-  loadServedMeals();
-  loadFraudAlerts();
   loadCashDepositHistory();
   renderCashStudentPreview(null);
-  const defaultForecastDate = addDaysIso(new Date(), 1);
-  if (id('forecast-date')) id('forecast-date').value = defaultForecastDate;
-  loadDemandForecast(defaultForecastDate);
-  loadForecastOutlook(defaultForecastDate);
+
+  const toolSection = id('service-tools-section');
+  const toolCards = Array.from(document.querySelectorAll('#service-tools-section .staff-service-card'));
+  const dashboardSections = Array.from(document.querySelectorAll('.staff-mobile-content > section')).filter((section) => section.id !== 'service-tools-section');
+  const dashboardTargets = Array.from(document.querySelectorAll('.staff-dashboard-target'));
+  const homeSections = Array.from(document.querySelectorAll('[data-staff-home-section]'));
+  const toolTriggers = Array.from(document.querySelectorAll('[data-staff-tool]'));
+  const dashboardTriggers = Array.from(document.querySelectorAll('[data-staff-dashboard]'));
+  const homeTrigger = document.querySelector('[data-staff-home]');
+  const setActiveStaffToolTrigger = (targetId) => {
+    toolTriggers.forEach((trigger) => {
+      trigger.classList.toggle('active', trigger.dataset.staffTool === targetId);
+    });
+    dashboardTriggers.forEach((trigger) => {
+      trigger.classList.toggle('active', false);
+    });
+    homeTrigger?.classList.toggle('active', !targetId);
+  };
+  const setActiveStaffDashboardTrigger = (targetId) => {
+    toolTriggers.forEach((trigger) => {
+      trigger.classList.toggle('active', false);
+    });
+    dashboardTriggers.forEach((trigger) => {
+      trigger.classList.toggle('active', trigger.dataset.staffDashboard === targetId);
+    });
+    homeTrigger?.classList.toggle('active', false);
+  };
+  const collapseStaffTools = () => {
+    if (!toolSection) return;
+    toolSection.classList.add('is-collapsed');
+    toolSection.classList.remove('is-focused');
+    dashboardSections.forEach((section) => { section.hidden = false; });
+    homeSections.forEach((section) => { section.hidden = false; });
+    dashboardTargets.forEach((section) => { section.classList.add('is-collapsed'); });
+    toolCards.forEach((card) => { card.hidden = false; });
+    setActiveStaffToolTrigger('');
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+  const showStaffDashboardTarget = (targetId, shouldScroll = true) => {
+    collapseStaffTools();
+    const targetSection = id(targetId);
+    if (!targetSection) return;
+    homeSections.forEach((section) => { section.hidden = true; });
+    if (targetSection.classList.contains('staff-dashboard-target')) {
+      targetSection.classList.remove('is-collapsed');
+    }
+    setActiveStaffDashboardTrigger(targetId);
+    if (window.location.hash !== `#${targetId}`) {
+      history.replaceState(null, '', `#${targetId}`);
+    }
+    if (shouldScroll) {
+      targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+  const openStaffTool = (targetId, shouldScroll = true) => {
+    if (!toolSection || !targetId) return;
+    const targetCard = id(targetId);
+    if (!targetCard) return;
+    toolSection.classList.remove('is-collapsed');
+    toolSection.classList.add('is-focused');
+    dashboardSections.forEach((section) => { section.hidden = true; });
+    toolCards.forEach((card) => {
+      card.hidden = card.id !== targetId;
+    });
+    setActiveStaffToolTrigger(targetId);
+    if (window.location.hash !== `#${targetId}`) {
+      history.replaceState(null, '', `#${targetId}`);
+    }
+    if (shouldScroll) {
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  toolTriggers.forEach((trigger) => {
+    trigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      openStaffTool(trigger.dataset.staffTool);
+    });
+  });
+  homeTrigger?.addEventListener('click', (event) => {
+    event.preventDefault();
+    collapseStaffTools();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  dashboardTriggers.forEach((trigger) => {
+    trigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      showStaffDashboardTarget(trigger.dataset.staffDashboard);
+    });
+  });
+
+  const initialToolId = (window.location.hash || '').replace(/^#/, '');
+  if (initialToolId && toolCards.some((card) => card.id === initialToolId)) {
+    openStaffTool(initialToolId, false);
+  } else if (initialToolId && dashboardSections.some((section) => section.id === initialToolId)) {
+    showStaffDashboardTarget(initialToolId, false);
+  } else {
+    collapseStaffTools();
+  }
 
   const sections = Array.from(document.querySelectorAll('.staff-section'));
   const tiles = Array.from(document.querySelectorAll('.staff-tile'));
@@ -1847,13 +2248,22 @@ function applyCurrentUserGreeting(elementId, fallbackLabel) {
   }).catch(() => {});
 }
 
+function mealCategory(meal) {
+  const explicit = String(meal?.category || '').trim();
+  if (explicit) return explicit === 'Snacks' ? 'Meals' : explicit;
+  const name = String(meal?.name || '').toLowerCase();
+  const description = String(meal?.description || '').toLowerCase();
+  if (name.includes('water') || name.includes('orange') || name.includes('juice') || name.includes('drink')) return 'Drinks';
+  return 'Meals';
+}
+
 function renderDashboardMenuCards(meals) {
   const list = id('menu-list');
   if (!list) return;
   list.innerHTML = meals.length ? meals.map((meal) => `
     <article class="hit-menu-card">
       <div class="hit-menu-card__image">${mealImageMarkup(meal)}</div>
-      <span class="hit-badge ${String(meal.name).toLowerCase().includes('water') || String(meal.name).toLowerCase().includes('orange') ? '' : 'hit-badge--gold'}">${String(meal.name).toLowerCase().includes('water') || String(meal.name).toLowerCase().includes('orange') ? 'Drinks' : 'Meals'}</span>
+      <span class="hit-badge ${mealCategory(meal) === 'Meals' ? 'hit-badge--gold' : ''}">${escapeHtml(mealCategory(meal))}</span>
       <h3>${escapeHtml(meal.name)}</h3>
       <p class="hit-muted">${escapeHtml(meal.description || 'Fresh canteen item')}</p>
       <div class="hit-list-row"><span class="hit-menu-card__price">${formatCurrency(meal.price)}</span><button class="hit-btn" type="button" data-add-meal-id="${meal.id}">Add to Order</button></div>
@@ -1870,11 +2280,57 @@ function renderDashboardMenuCards(meals) {
 async function hydrateStudentMenuPage() {
   if (!token) return redirectToLogin('student');
   bindLogout();
+  const searchInput = id('menu-search');
+  const filterTabs = id('menu-filter-tabs');
+  const tabButtons = Array.from(document.querySelectorAll('.hit-tab'));
+  const setActiveTab = (label) => {
+    tabButtons.forEach((item) => item.classList.toggle('active', item.textContent.trim() === label));
+  };
+  const syncSearchUi = () => {
+    const hasQuery = !!String(searchInput?.value || '').trim();
+    filterTabs?.classList.toggle('is-hidden-by-search', hasQuery);
+  };
+  const getActiveCategory = () => {
+    const active = tabButtons.find((button) => button.classList.contains('active'));
+    return (active?.textContent || 'All').trim();
+  };
+  const applyMenuFilters = (allMeals) => {
+    const query = String(searchInput?.value || '').trim().toLowerCase();
+    syncSearchUi();
+    const activeCategory = getActiveCategory();
+    const filtered = allMeals.filter((meal) => {
+      const category = mealCategory(meal);
+      const matchesCategory = activeCategory === 'All' || category === activeCategory;
+      const haystack = `${meal.name || ''} ${meal.description || ''} ${category}`.toLowerCase();
+      const matchesSearch = !query || haystack.includes(query);
+      return matchesCategory && matchesSearch;
+    });
+    renderDashboardMenuCards(filtered);
+  };
   try {
-    const meals = await req('/api/v1/menu');
-    renderDashboardMenuCards(meals.length ? meals : demoMeals);
+    const fetchedMeals = await req('/api/v1/menu');
+    const allMeals = fetchedMeals.length ? fetchedMeals : demoMeals;
+    applyMenuFilters(allMeals);
+    searchInput?.addEventListener('input', () => applyMenuFilters(allMeals));
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const isAlreadyActive = button.classList.contains('active');
+        const label = button.textContent.trim();
+        setActiveTab(isAlreadyActive && label !== 'All' ? 'All' : label);
+        applyMenuFilters(allMeals);
+      });
+    });
   } catch {
-    renderDashboardMenuCards(demoMeals);
+    applyMenuFilters(demoMeals);
+    searchInput?.addEventListener('input', () => applyMenuFilters(demoMeals));
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const isAlreadyActive = button.classList.contains('active');
+        const label = button.textContent.trim();
+        setActiveTab(isAlreadyActive && label !== 'All' ? 'All' : label);
+        applyMenuFilters(demoMeals);
+      });
+    });
   }
 }
 
@@ -1883,7 +2339,20 @@ async function hydrateStudentCartPage() {
   bindLogout();
   renderCart();
   await loadMenuAndSlots();
+  document.querySelectorAll('[data-cart-provider]').forEach((button) => {
+    button.addEventListener('click', () => setSelectedCartPaymentMethod(button.dataset.cartProvider));
+  });
+  setSelectedCartPaymentMethod(getSelectedCartPaymentMethod());
   id('checkout-cart-btn')?.addEventListener('click', placeOrdersFromCart);
+  id('retry-payment-btn')?.addEventListener('click', () => {
+    showStatus('order-status', '', true);
+    if (getSelectedCartPaymentMethod() === 'mobile_money') {
+      id('cart-mobile-money-phone')?.focus();
+    } else {
+      id('cart-slot-id')?.focus();
+    }
+  });
+  await checkPendingPaynowOrderReturn();
 }
 
 async function hydrateStudentTransactionsPage() {
@@ -2091,6 +2560,8 @@ async function hydrateStudentAddMoneyPage() {
   if (!token) return redirectToLogin('student');
   bindLogout();
   await loadWallet();
+  setSelectedStudentTopupMethod(getSelectedStudentTopupMethod());
+  setWalletMethod(getSelectedStudentTopupMethod());
   bindWalletModal();
   await checkPendingPaynowTopupReturn();
 }
@@ -2141,14 +2612,42 @@ async function hydrateAdminStudents() {
     const q = id('admin-students-search')?.value || '';
     try {
       const items = await req(`/api/v1/admin/students?q=${encodeURIComponent(q)}`);
-      renderAdminTableRows('admin-students-body', items.map((item) => ({
+      const rows = items.map((item) => ({
         name: escapeHtml(item.name),
         student_id: escapeHtml(item.student_id),
         email: escapeHtml(item.email),
         balance: formatCurrency(item.balance),
         status: `<span class="hit-badge ${String(item.status).toLowerCase().includes('suspend') ? 'hit-badge--danger' : 'hit-badge--success'}">${escapeHtml(item.status)}</span>`,
-        actions: 'View ï¿½ Edit',
-      })), ['name', 'student_id', 'email', 'balance', 'status', 'actions']);
+        actions: `
+          <button
+            class="${item.is_suspended ? 'hit-btn-secondary' : 'hit-btn-danger'}"
+            type="button"
+            data-admin-student-action="${item.is_suspended ? 'activate' : 'suspend'}"
+            data-admin-student-id="${item.id}"
+            data-admin-student-name="${escapeHtml(item.name)}"
+          >${item.is_suspended ? 'Activate' : 'Suspend'}</button>
+        `,
+      }));
+      renderAdminTableRows('admin-students-body', rows, ['name', 'student_id', 'email', 'balance', 'status', 'actions']);
+      id('admin-students-body')?.querySelectorAll('[data-admin-student-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const action = String(button.dataset.adminStudentAction || '').trim().toLowerCase();
+          const studentId = button.dataset.adminStudentId;
+          const studentName = button.dataset.adminStudentName || 'this student';
+          const verb = action === 'activate' ? 'activate' : 'suspend';
+          if (!window.confirm(`Do you want to ${verb} ${studentName}?`)) return;
+          try {
+            setButtonBusy(button, true, action === 'activate' ? 'Activating...' : 'Suspending...');
+            const response = await req(`/api/v1/admin/students/${studentId}/status`, 'PATCH', { action });
+            showStatus('admin-students-status', response.detail || `Student account ${verb}d successfully.`);
+            await load();
+          } catch (err) {
+            showStatus('admin-students-status', err.message || `Unable to ${verb} this student right now.`, false);
+          } finally {
+            setButtonBusy(button, false);
+          }
+        });
+      });
       showStatus('admin-students-status', `${items.length} student records loaded.`);
     } catch (err) {
       showStatus('admin-students-status', err.message || 'Unable to load students.', false);
@@ -2663,6 +3162,90 @@ function ensureAdminPortalPage() {
     applyCurrentUserGreeting('admin-dashboard-greeting', 'Admin');
   }
   return true;
+}
+
+function renderMiniBarChart(targetId, values, labels = [], highlightIndex = -1) {
+  const node = id(targetId);
+  if (!node) return;
+  if (!values.length) {
+    node.innerHTML = '<div class="hit-empty-state">No recent data available.</div>';
+    return;
+  }
+  const max = Math.max(...values, 1);
+  node.innerHTML = `
+    <div class="hit-chart-bars">
+      ${values.map((value, index) => {
+        const height = Math.max(12, Math.round((Number(value || 0) / max) * 100));
+        const label = labels[index] || '';
+        return `<div class="hit-chart-bar${index === highlightIndex ? ' hit-chart-bar--gold' : ''}" style="height:${height}%" title="${escapeHtml(label)}: ${value}"></div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function hydrateAdminDashboard() {
+  if (!token) return window.location.replace('/admin-login/');
+  try {
+    const [kpis, transactions] = await Promise.all([
+      req('/api/v1/admin/kpis'),
+      req('/api/v1/admin/all-transactions'),
+    ]);
+
+    if (id('admin-kpi-revenue')) id('admin-kpi-revenue').textContent = formatCurrency(kpis.total_revenue || 0);
+    if (id('admin-kpi-transactions')) id('admin-kpi-transactions').textContent = String(kpis.total_transactions || 0);
+    if (id('admin-kpi-students')) id('admin-kpi-students').textContent = String(kpis.active_students || 0);
+    if (id('admin-kpi-failed')) id('admin-kpi-failed').textContent = String(kpis.failed_payments || 0);
+
+    const activityBody = id('admin-activity-body');
+    if (activityBody) {
+      const recentItems = transactions.slice(0, 12);
+      activityBody.innerHTML = recentItems.length
+        ? recentItems.map((item) => `
+            <tr>
+              <td>${escapeHtml(formatDateTime(item.time))}</td>
+              <td>${escapeHtml(item.item || 'Transaction')}</td>
+              <td>${escapeHtml(item.student || item.student_email || '-')}</td>
+              <td>${escapeHtml(item.status || '-')}</td>
+            </tr>
+          `).join('')
+        : '<tr><td colspan="4">No recent activity found.</td></tr>';
+    }
+
+    const now = new Date();
+    const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(now);
+      day.setHours(0, 0, 0, 0);
+      day.setDate(now.getDate() - (6 - index));
+      return day;
+    });
+    const dayKeys = lastSevenDays.map((day) => day.toISOString().slice(0, 10));
+    const revenueByDay = Object.fromEntries(dayKeys.map((key) => [key, 0]));
+    const countByDay = Object.fromEntries(dayKeys.map((key) => [key, 0]));
+
+    transactions.forEach((item) => {
+      const dayKey = String(item.time || '').slice(0, 10);
+      if (!Object.prototype.hasOwnProperty.call(revenueByDay, dayKey)) return;
+      const amount = Number(item.amount || 0);
+      const status = String(item.status || '').toLowerCase();
+      if (!status.includes('failed')) {
+        revenueByDay[dayKey] += amount;
+      }
+      countByDay[dayKey] += 1;
+    });
+
+    const revenueValues = dayKeys.map((key) => Number(revenueByDay[key].toFixed(2)));
+    const transactionValues = dayKeys.map((key) => countByDay[key]);
+    const labels = lastSevenDays.map((day) => day.toLocaleDateString(undefined, { weekday: 'short' }));
+    renderMiniBarChart('admin-revenue-chart', revenueValues, labels, revenueValues.lastIndexOf(Math.max(...revenueValues, 0)));
+    renderMiniBarChart('admin-transactions-chart', transactionValues, labels, transactionValues.lastIndexOf(Math.max(...transactionValues, 0)));
+  } catch (err) {
+    const activityBody = id('admin-activity-body');
+    if (activityBody) {
+      activityBody.innerHTML = `<tr><td colspan="4">${escapeHtml(err.message || 'Unable to load dashboard data.')}</td></tr>`;
+    }
+    if (id('admin-revenue-chart')) id('admin-revenue-chart').innerHTML = '<div class="hit-empty-state">Unable to load chart data.</div>';
+    if (id('admin-transactions-chart')) id('admin-transactions-chart').innerHTML = '<div class="hit-empty-state">Unable to load chart data.</div>';
+  }
 }
 
 function initAdminLoginPage() {

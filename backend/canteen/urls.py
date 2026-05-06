@@ -36,6 +36,7 @@ urlpatterns = [
     path('tickets/validate-scan', views.validate_scan),
     path('admin/kpis', views.admin_kpis),
     path('admin/students', views.admin_students),
+    path('admin/students/<int:user_id>/status', views.admin_student_status),
     path('admin/staff-members', views.admin_staff_members),
     path('admin/food-items', views.admin_food_items),
     path('admin/all-transactions', views.admin_all_transactions),

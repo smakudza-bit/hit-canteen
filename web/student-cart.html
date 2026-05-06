@@ -1,3 +1,89 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Cart | HIT Canteen</title><link rel="stylesheet" href="/static/styles.css" /></head><body data-page="student-cart" class="hit-ui"><div class="hit-shell"><header class="hit-topbar"><div class="hit-topbar__brand"><div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div><div class="hit-topbar__meta"><h1>Order Summary</h1><p>Review selected items before payment</p></div></div><a class="hit-chip" href="/student-menu/">Continue Browsing</a></header><main class="hit-main hit-stack"><section class="hit-grid-2"><section class="hit-card"><div class="hit-section-head"><div><h2>Selected Items</h2><p class="hit-muted">Everything you are about to pay for.</p></div></div><div id="cart-list" class="hit-list"></div></section><section class="hit-card"><div class="hit-section-head"><div><h2>Checkout</h2><p class="hit-muted">Select a slot and payment method.</p></div></div><div id="cart-chart" class="hit-list-card">Cart summary by item</div><div id="slots-list" class="hit-list" style="margin-top:16px;"></div><div class="hit-field"><label class="hit-label">Pickup Slot ID</label><input class="hit-input" id="cart-slot-id" type="number" placeholder="Enter slot ID" /></div><div class="hit-field"><label class="hit-label">Payment Method</label><select class="hit-select" id="cart-provider"><option value="wallet">Pay from Wallet</option><option value="paynow">Pay Directly with Paynow</option></select></div><div class="hit-list-row"><strong>Total</strong><strong id="cart-total">Total: $0.00</strong></div><button id="checkout-cart-btn" class="hit-btn" type="button">Proceed to Pay</button><p id="order-status" class="status-msg"></p></section></section></main>{% include 'partials/student-bottom-nav.html' %}</div><script src="/static/app.js?v=20260414a"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cart | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
+</head>
+<body data-page="student-cart" class="hit-ui">
+  <div class="hit-shell">
+    <header class="hit-topbar">
+      <div class="hit-topbar__brand">
+        <div class="hit-logo-mark hit-logo-lockup">
+          <span class="hit-logo-lockup__mark">HIT</span>
+          <span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span>
+        </div>
+        <div class="hit-topbar__meta">
+          <h1>Order Summary</h1>
+          <p>Review selected items before payment</p>
+        </div>
+      </div>
+      <a class="hit-chip" href="/student-menu/">Continue Browsing</a>
+    </header>
 
+    <main class="hit-main hit-stack">
+      <section class="hit-grid-2">
+        <section class="hit-card">
+          <div class="hit-section-head">
+            <div>
+              <h2>Selected Items</h2>
+              <p class="hit-muted">Everything you are about to pay for.</p>
+            </div>
+          </div>
+          <div id="cart-list" class="hit-list"></div>
+        </section>
 
+        <section class="hit-card">
+          <div class="hit-section-head">
+            <div>
+              <h2>Checkout</h2>
+              <p class="hit-muted">Choose a pickup slot and pay using a USD mobile money or bank/card account.</p>
+            </div>
+          </div>
+
+          <div id="cart-chart" class="hit-list-card">Cart summary by item</div>
+          <div id="slots-list" class="hit-list" style="margin-top:16px;"></div>
+
+          <div class="hit-field">
+            <label class="hit-label" for="cart-slot-id">Pickup Slot ID</label>
+            <input class="hit-input" id="cart-slot-id" type="number" placeholder="Enter slot ID" />
+          </div>
+
+          <div class="hit-field">
+            <label class="hit-label">Payment Method</label>
+            <div class="hit-method-grid hit-method-grid--compact">
+              <button class="hit-method-card selected" type="button" data-cart-provider="mobile_money">
+                <strong>Pay with Mobile Money</strong>
+                <span class="hit-muted">Use your USD mobile money number, then confirm on EcoCash.</span>
+              </button>
+              <button class="hit-method-card" type="button" data-cart-provider="bank_card">
+                <strong>Pay with Bank/Card</strong>
+                <span class="hit-muted">Continue to secure USD bank or card confirmation.</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="hit-field" id="cart-mobile-money-field">
+            <label class="hit-label" for="cart-mobile-money-phone">Mobile Money Phone Number</label>
+            <input class="hit-input" id="cart-mobile-money-phone" type="tel" placeholder="Enter USD EcoCash phone number" />
+          </div>
+
+          <div class="hit-list-row">
+            <strong>Total</strong>
+            <strong id="cart-total">Total: $0.00</strong>
+          </div>
+
+          <button id="checkout-cart-btn" class="hit-btn" type="button">Confirm Payment</button>
+          <button id="retry-payment-btn" class="hit-btn-secondary" type="button">Try Again</button>
+          <p id="order-status" class="status-msg"></p>
+        </section>
+      </section>
+    </main>
+
+    {% include 'partials/student-bottom-nav.html' %}
+  </div>
+
+  <script src="/static/app.js?v=20260414a"></script>
+</body>
+</html>

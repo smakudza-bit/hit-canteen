@@ -46,8 +46,16 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 class TopUpInitiateSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
-    provider = serializers.ChoiceField(choices=['mobile_money', 'bank_card', 'online_payment'])
-    email = serializers.EmailField(required=False)
+    provider = serializers.ChoiceField(choices=['mobile_money', 'bank_card'])
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=32)
+
+    def validate(self, attrs):
+        provider = attrs.get('provider')
+        phone_number = str(attrs.get('phone_number') or '').strip()
+        if provider == 'mobile_money' and not phone_number:
+            raise serializers.ValidationError({'phone_number': ['Enter the mobile money phone number.']})
+        attrs['phone_number'] = phone_number
+        return attrs
 
 
 class PaymentWebhookSerializer(serializers.Serializer):
@@ -71,6 +79,16 @@ class PaynowOrderItemSerializer(serializers.Serializer):
 class PaynowOrderInitiateSerializer(serializers.Serializer):
     slot_id = serializers.IntegerField(min_value=1)
     items = PaynowOrderItemSerializer(many=True)
+    provider = serializers.ChoiceField(choices=['mobile_money', 'bank_card'])
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=32)
+
+    def validate(self, attrs):
+        provider = attrs.get('provider')
+        phone_number = str(attrs.get('phone_number') or '').strip()
+        if provider == 'mobile_money' and not phone_number:
+            raise serializers.ValidationError({'phone_number': ['Enter the mobile money phone number.']})
+        attrs['phone_number'] = phone_number
+        return attrs
 
 
 class ScanSerializer(serializers.Serializer):

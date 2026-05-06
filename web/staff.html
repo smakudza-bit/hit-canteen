@@ -4,30 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Staff Dashboard | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
   <style>
     .staff-mobile-page {
-      background: #f5f7fa;
+      background: #e5e7eb;
       min-height: 100vh;
       color: #1f2937;
       padding-bottom: 96px;
     }
     .staff-mobile-shell {
-      max-width: 480px;
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      grid-template-areas:
+        "nav header"
+        "nav main";
+      width: 100%;
+      max-width: 1180px;
       margin: 0 auto;
       min-height: 100vh;
-      background: #f5f7fa;
+      background: #ffffff;
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 22px 48px rgba(15, 42, 95, 0.14);
+      border: 1px solid #dbe3ef;
     }
     .staff-mobile-header {
+      grid-area: header;
       background: #0f4c9c;
       color: #fff;
-      padding: 16px;
-      border-bottom-left-radius: 20px;
-      border-bottom-right-radius: 20px;
+      padding: 18px 22px 22px;
+      border-bottom-right-radius: 28px;
       box-shadow: 0 12px 28px rgba(15, 76, 156, 0.16);
-      position: sticky;
-      top: 0;
-      z-index: 20;
     }
     .staff-mobile-bar {
       display: flex;
@@ -49,33 +56,60 @@
       text-decoration: none;
       flex-shrink: 0;
     }
-    .staff-mobile-icon-btn.hit-header-menu-tab {
-      width: 58px;
-      height: 48px;
-      border-radius: 14px 14px 26px 14px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 18px rgba(10, 44, 105, 0.18);
+    .staff-mobile-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
     }
-    .staff-mobile-icon-btn.hit-header-menu-tab svg {
-      width: 28px;
-      height: 28px;
+    .staff-kicker {
+      margin: 0 0 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: rgba(255,255,255,0.72);
+    }
+    .staff-mobile-brand .hit-logo-mark.hit-logo-lockup {
+      width: 124px;
+      height: 44px;
+      flex-shrink: 0;
     }
     .staff-mobile-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: 0.01em;
       margin: 0;
-      text-align: center;
+      text-align: left;
       flex: 1;
     }
+    .staff-mobile-title small {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.78);
+    }
+    .staff-mobile-profile {
+      width: auto;
+      min-width: 84px;
+      border-radius: 999px;
+      padding: 0 14px;
+      font-weight: 800;
+      gap: 8px;
+      background: rgba(255,255,255,0.16);
+    }
     .staff-mobile-content {
-      padding: 16px;
+      grid-area: main;
+      padding: 24px 22px;
       display: grid;
-      gap: 18px;
+      gap: 16px;
+      background: #f5f7fa;
     }
     .staff-mobile-welcome h2 {
       margin: 0;
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 800;
       color: #1f2937;
     }
@@ -92,9 +126,78 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
+    .staff-hero-card {
+      background: linear-gradient(135deg, #0f4c9c, #0b3874);
+      color: #fff;
+      border-radius: 28px;
+      padding: 18px;
+      box-shadow: 0 16px 34px rgba(15, 76, 156, 0.18);
+      display: grid;
+      gap: 14px;
+    }
+    .staff-hero-card__row {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .staff-hero-card__eyebrow {
+      margin: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: rgba(255,255,255,0.72);
+      font-weight: 700;
+    }
+    .staff-hero-card__value {
+      margin: 10px 0 0;
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1;
+    }
+    .staff-hero-card__copy {
+      margin: 8px 0 0;
+      color: rgba(255,255,255,0.82);
+      max-width: 54ch;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+    .staff-hero-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #fff;
+      color: #0f4c9c;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .staff-hero-actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .staff-quick-btn {
+      min-height: 46px;
+      border-radius: 16px;
+      border: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 14px;
+      background: #fff;
+      color: #0f4c9c;
+      box-shadow: 0 8px 18px rgba(7, 24, 56, 0.14);
+    }
     .staff-main-actions {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
     .staff-main-card,
@@ -107,13 +210,13 @@
       border: 1px solid #e5e7eb;
     }
     .staff-main-card {
-      padding: 18px 14px;
+      padding: 14px 12px;
       text-decoration: none;
       color: inherit;
       display: grid;
-      gap: 10px;
+      gap: 8px;
       place-items: center;
-      min-height: 132px;
+      min-height: 92px;
       text-align: center;
     }
     .staff-main-card__icon,
@@ -139,15 +242,21 @@
     .staff-wallet-card__copy strong,
     .staff-service-card h3 {
       margin: 0;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       color: #1f2937;
+    }
+    .staff-main-card p {
+      margin: 0;
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.35;
     }
     .staff-wallet-card {
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 16px;
+      padding: 14px 16px;
       text-decoration: none;
       color: inherit;
     }
@@ -164,6 +273,114 @@
       font-size: 22px;
       color: #0f4c9c;
       line-height: 1;
+    }
+    .staff-queue-card {
+      background: linear-gradient(135deg, #fffdf7, #fff2cf);
+      border: 1px solid rgba(212, 160, 23, 0.34);
+      border-radius: 28px;
+      padding: 18px;
+      box-shadow: 0 16px 32px rgba(138, 97, 16, 0.12);
+      display: grid;
+      gap: 14px;
+    }
+    .staff-queue-card__topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .staff-queue-card__eyebrow {
+      margin: 0;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-weight: 900;
+      color: #8a6110;
+    }
+    .staff-queue-card__topbar .staff-status-chip {
+      background: #0f4c9c;
+      color: #fff;
+    }
+    .staff-queue-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.9fr);
+      gap: 14px;
+    }
+    .staff-queue-board__primary,
+    .staff-queue-board__secondary {
+      border-radius: 22px;
+      padding: 18px;
+      background: #fff;
+      border: 1px solid rgba(15, 76, 156, 0.08);
+    }
+    .staff-queue-board__primary {
+      background: linear-gradient(145deg, #12307a, #0b3874);
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+    }
+    .staff-queue-board__label {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.82;
+    }
+    .staff-queue-board__number {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      line-height: 0.95;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+    }
+    .staff-queue-board__meal {
+      margin: 12px 0 6px;
+      font-size: 1.25rem;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+    .staff-queue-board__subtext {
+      margin: 0;
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .staff-queue-board__secondary {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+    .staff-queue-chip {
+      display: grid;
+      gap: 4px;
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+    }
+    .staff-queue-chip strong {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6b7280;
+    }
+    .staff-queue-chip span {
+      font-size: 15px;
+      font-weight: 800;
+      color: #1f2937;
+      line-height: 1.25;
+    }
+    .staff-queue-card__hint {
+      margin: 0;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    @media (max-width: 760px) {
+      .staff-queue-board {
+        grid-template-columns: 1fr;
+      }
     }
     .staff-dashboard-card {
       padding: 16px;
@@ -195,12 +412,50 @@
       color: #8a6110;
       border: 1px solid rgba(212, 160, 23, 0.3);
     }
+    .staff-block--tools.is-collapsed {
+      display: none;
+    }
+    .staff-block--tools.is-focused {
+      grid-column: 1 / -1;
+    }
+    .staff-block--tools.is-focused .staff-service-grid {
+      grid-template-columns: 1fr;
+    }
+    .staff-block--tools.is-focused .staff-service-card {
+      min-height: calc(100vh - 300px);
+      align-content: start;
+    }
+    .staff-dashboard-target.is-collapsed {
+      display: none;
+    }
     .staff-service-grid {
       display: grid;
+      gap: 12px;
+    }
+    .staff-live-service-grid {
+      display: grid;
       gap: 14px;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.95fr);
+      align-items: start;
     }
     .staff-service-card {
       padding: 16px;
+      border-radius: 24px;
+    }
+    .staff-service-card--scan {
+      min-height: 100%;
+    }
+    .staff-service-card--scan .staff-mini-actions {
+      gap: 14px;
+    }
+    .staff-service-card--scan .hit-textarea {
+      min-height: 150px;
+    }
+    .staff-service-card--walkin {
+      min-height: 100%;
+    }
+    .staff-service-card--walkin .walkin-meal-options {
+      margin-bottom: 2px;
     }
     .staff-service-head {
       display: flex;
@@ -251,21 +506,20 @@
       width: 100%;
     }
     .staff-bottom-nav {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 0;
-      width: min(100%, 480px);
+      grid-area: nav;
       background: #fff;
-      border-top: 1px solid #e5e7eb;
-      box-shadow: 0 -10px 24px rgba(15, 76, 156, 0.08);
-      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
-      z-index: 30;
+      border-right: 1px solid #e5e7eb;
+      box-shadow: 10px 0 24px rgba(15, 76, 156, 0.06);
+      padding: 20px 10px;
+      display: flex;
+      align-items: stretch;
+      min-height: 100%;
     }
     .staff-bottom-nav__grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
     }
     .staff-bottom-nav a {
       text-decoration: none;
@@ -273,7 +527,7 @@
       display: grid;
       justify-items: center;
       gap: 6px;
-      padding: 8px 4px;
+      padding: 10px 4px;
       border-radius: 14px;
       font-size: 11px;
       font-weight: 700;
@@ -296,6 +550,31 @@
       align-items: center;
       justify-content: center;
     }
+    .staff-simple-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .staff-simple-pill {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 8px 18px rgba(31, 41, 55, 0.06);
+    }
+    .staff-simple-pill strong {
+      display: block;
+      font-size: 18px;
+      color: #0f4c9c;
+    }
+    .staff-simple-pill span {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 700;
+    }
     @media (min-width: 760px) {
       .staff-mobile-shell {
         max-width: 920px;
@@ -303,6 +582,9 @@
       .staff-mobile-content {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
+      }
+      .staff-hero-card {
+        grid-column: span 2;
       }
       .staff-mobile-welcome,
       .staff-block--primary,
@@ -314,7 +596,57 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .staff-main-actions {
-        max-width: 420px;
+        max-width: none;
+      }
+    }
+    @media (min-width: 1080px) {
+      .staff-mobile-shell {
+        max-width: 1240px;
+      }
+      .staff-mobile-content {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+      }
+      .staff-hero-card {
+        grid-column: span 3;
+      }
+      .staff-mobile-welcome,
+      .staff-block--primary,
+      .staff-block--meals,
+      .staff-block--tools {
+        grid-column: span 3;
+      }
+      .staff-service-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .staff-main-actions {
+        max-width: none;
+      }
+    }
+    @media (max-width: 760px) {
+      .staff-mobile-page {
+        background: #f5f7fa;
+      }
+      .staff-mobile-shell {
+        grid-template-columns: 82px minmax(0, 1fr);
+        grid-template-areas:
+          "nav header"
+          "nav main";
+        border-radius: 0;
+        border: 0;
+        box-shadow: none;
+      }
+      .staff-mobile-header {
+        border-bottom-right-radius: 0;
+      }
+      .staff-mobile-content {
+        padding: 18px 16px;
+      }
+      .staff-hero-actions,
+      .staff-main-actions,
+      .staff-simple-strip,
+      .staff-live-service-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -323,94 +655,116 @@
   <div class="staff-mobile-shell">
     <header class="staff-mobile-header">
       <div class="staff-mobile-bar">
-        <button class="staff-mobile-icon-btn hit-header-menu-tab" type="button" aria-label="Open menu">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <path d="M4 7h16M4 12h16M4 17h16"/>
+        <div class="staff-mobile-brand">
+          <div>
+            <p class="staff-kicker">Staff Portal</p>
+            <h1 class="staff-mobile-title">HIT Canteen<small>Service operations dashboard</small></h1>
+          </div>
+        </div>
+        <button id="logout-btn" class="staff-mobile-profile" type="button" aria-label="Log out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <path d="M16 17l5-5-5-5"/>
+            <path d="M21 12H9"/>
           </svg>
-        </button>
-        <h1 class="staff-mobile-title">HIT Canteen</h1>
-        <button id="logout-btn" class="staff-mobile-profile" type="button" aria-label="Staff profile">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15.75 7.5a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
-            <path d="M4.5 19.25a7.5 7.5 0 0 1 15 0"/>
-          </svg>
+          <span>Log Out</span>
         </button>
       </div>
     </header>
 
     <main class="staff-mobile-content">
-      <section class="staff-mobile-welcome staff-block--primary">
+      <section class="staff-mobile-welcome staff-block--primary" data-staff-home-section>
         <h2 id="staff-dashboard-greeting">Hello, Staff</h2>
-        <p>Welcome back!</p>
+        <p>Start with the two jobs that matter most during service.</p>
       </section>
 
-      <section class="staff-block--primary">
-        <p class="staff-mobile-section-title">Manage Meals</p>
-        <div class="staff-main-actions">
-          <a class="staff-main-card" href="#add-meal-section">
-            <span class="staff-main-card__icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-            </span>
-            <h3>Add Meal</h3>
-          </a>
-          <a class="staff-main-card staff-main-card--gold" href="#scan-section">
-            <span class="staff-main-card__icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2"/>
-                <path d="M7 12h10"/>
-              </svg>
-            </span>
-            <h3>Scan QR Code</h3>
-          </a>
-          <a class="staff-main-card" href="#walkin-section">
-            <span class="staff-main-card__icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 6h16v12H4z"/>
-                <path d="M8 10h8M12 8v8"/>
-              </svg>
-            </span>
-            <h3>Walk-in Order</h3>
-          </a>
+      <section class="staff-block--primary" id="service-station-section" data-staff-home-section>
+        <p class="staff-mobile-section-title">Live Service</p>
+        <div class="staff-live-service-grid">
+          <section class="staff-service-card staff-service-card--scan" id="scan-section">
+            <div class="staff-service-head">
+              <div>
+                <h3>Scan Student QR</h3>
+                <p>Primary service lane. Scan and confirm collection as fast as possible during busy periods.</p>
+              </div>
+              <span class="staff-status-chip">Scan</span>
+            </div>
+            <div class="staff-mini-actions">
+              <textarea class="hit-textarea" id="scan-token" rows="4" placeholder="Paste scanned QR token here"></textarea>
+              <a class="staff-dashboard-btn" href="/staff-scanner/">Open Camera Scanner</a>
+              <button id="scan-validate-btn" class="staff-dashboard-link" type="button">Validate Manual Token</button>
+            </div>
+            <p id="scan-status" class="status-msg"></p>
+          </section>
+
+          <section class="staff-service-card staff-service-card--walkin" id="walkin-section">
+            <div class="staff-service-head"><div><h3>Walk-in Orders</h3><p>Secondary lane for customers without prebooked student orders.</p></div><span class="staff-status-chip">Counter</span></div>
+            <div class="staff-inline-inputs">
+              <input id="walkin-meal-id" type="hidden" />
+              <div id="walkin-meal-options" class="walkin-meal-options"></div>
+              <input class="hit-input" id="walkin-qty" type="number" min="1" value="1" />
+              <input class="hit-input" id="walkin-name" type="text" placeholder="Customer name" />
+              <button id="walkin-serve-btn" class="staff-dashboard-btn" type="button">Serve Walk-in</button>
+            </div>
+            <p id="walkin-status" class="status-msg"></p>
+          </section>
         </div>
       </section>
 
-      <section class="staff-block--primary">
-        <p class="staff-mobile-section-title">Manage Wallets</p>
-        <a class="staff-wallet-card" href="#cash-deposit-section">
-          <span class="staff-wallet-card__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3.5 7.5h17v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/>
-              <path d="M16 12h4.5"/>
-            </svg>
-          </span>
-          <div class="staff-wallet-card__copy">
-            <strong>Top Up Student Wallets</strong>
-            <span>Add cash deposits quickly using a student ID lookup.</span>
-          </div>
-          <span class="staff-wallet-card__arrow">›</span>
-        </a>
-      </section>
-
-      <section class="staff-block--meals">
-        <details class="hit-toggle-card" open>
-          <summary class="hit-toggle-summary">
-            <span>Available Meals</span>
-            <span class="hit-toggle-summary__meta">Tap to hide</span>
-          </summary>
-          <div class="staff-dashboard-card">
-          <div id="staff-meals-list" class="staff-meals-grid"></div>
-            <div class="staff-dashboard-card__footer">
-              <a class="staff-dashboard-btn" href="#add-meal-section">Manage Menu</a>
-            </div>
-          </div>
-        </details>
-      </section>
-
-      <section class="staff-block--tools">
+      <section class="staff-block--tools is-collapsed" id="service-tools-section">
         <p class="staff-mobile-section-title">Service Tools</p>
         <div class="staff-service-grid">
+          <section class="staff-service-card" id="chef-queue-section">
+            <p class="staff-mobile-section-title">Chef Queue</p>
+            <div class="staff-queue-card" id="chef-next-card">
+              <div class="staff-queue-card__topbar">
+                <p class="staff-queue-card__eyebrow">Kitchen Serve Line</p>
+                <span class="staff-status-chip" id="chef-next-status">Queue clear</span>
+              </div>
+              <div class="staff-queue-board">
+                <div class="staff-queue-board__primary">
+                  <p class="staff-queue-board__label">Now Serving</p>
+                  <h3 class="staff-queue-board__number" id="chef-next-order-ref">-</h3>
+                  <p class="staff-queue-board__meal" id="chef-next-meal">No pending meal</p>
+                  <p class="staff-queue-board__subtext" id="chef-next-note">New paid student orders will appear here so the chef knows what to prepare next.</p>
+                </div>
+                <div class="staff-queue-board__secondary">
+                  <div class="staff-queue-chip">
+                    <strong>Student</strong>
+                    <span id="chef-next-student">Waiting for new orders</span>
+                  </div>
+                  <div class="staff-queue-chip">
+                    <strong>Quantity</strong>
+                    <span id="chef-next-quantity">0 meals</span>
+                  </div>
+                  <div class="staff-queue-chip">
+                    <strong>Up Next</strong>
+                    <span id="chef-up-next">No next order</span>
+                  </div>
+                  <div class="staff-queue-chip">
+                    <strong>Waiting</strong>
+                    <span id="chef-next-waiting-count">0 more orders</span>
+                  </div>
+                </div>
+              </div>
+              <a class="staff-dashboard-btn" href="#scan-section" data-staff-tool="scan-section">Open Scan / Serve</a>
+            </div>
+          </section>
+
+          <section class="staff-service-card" id="meals-section">
+            <div class="staff-service-head">
+              <div>
+                <h3>Available Meals</h3>
+                <p>Review the live menu before adding or updating items.</p>
+              </div>
+              <span class="staff-status-chip">Menu</span>
+            </div>
+            <div id="staff-meals-list" class="staff-meals-grid"></div>
+            <div class="staff-dashboard-card__footer">
+              <a class="staff-dashboard-btn" href="#add-meal-section" data-staff-tool="add-meal-section">Add New Meal</a>
+            </div>
+          </section>
+
           <section class="staff-service-card" id="add-meal-section">
             <div class="staff-service-head">
               <div>
@@ -428,22 +782,6 @@
                 <button class="staff-dashboard-btn" type="submit">Add Meal</button>
               </form>
             <p id="meal-status" class="status-msg"></p>
-          </section>
-
-          <section class="staff-service-card" id="scan-section">
-            <div class="staff-service-head">
-              <div>
-                <h3>Scan Student QR</h3>
-                <p>Validate QR tickets quickly during rush hour.</p>
-              </div>
-              <span class="staff-status-chip">Scan</span>
-            </div>
-            <div class="staff-mini-actions">
-              <textarea class="hit-textarea" id="scan-token" rows="4" placeholder="Paste scanned QR token here"></textarea>
-              <button id="scan-validate-btn" class="staff-dashboard-btn" type="button">Validate Ticket</button>
-              <a class="staff-dashboard-link" href="/staff-scanner/">Open Camera Scanner</a>
-            </div>
-            <p id="scan-status" class="status-msg"></p>
           </section>
 
           <section class="staff-service-card" id="cash-deposit-section">
@@ -465,52 +803,6 @@
             </div>
             <p id="cash-deposit-status" class="status-msg"></p>
             <div id="cash-deposit-history" class="hit-list"></div>
-          </section>
-
-<details class="hit-toggle-card staff-tools-toggle">
-            <summary class="hit-toggle-summary">
-              <span>Orders and Service Flow</span>
-              <span class="hit-toggle-summary__meta">Open when needed</span>
-            </summary>
-            <div class="staff-service-grid staff-service-grid--nested">
-              <section class="staff-service-card" id="orders-section">
-            <div class="staff-service-head">
-              <div>
-                <h3>Orders</h3>
-                <p>Review student orders and keep the service line moving.</p>
-              </div>
-              <span class="staff-status-chip">Orders</span>
-            </div>
-            <div class="staff-mini-actions">
-              <button id="load-staff-orders-btn" class="staff-dashboard-link" type="button">Refresh Orders</button>
-              <div id="staff-orders-list" class="hit-list"></div>
-              <div id="staff-orders-chart" class="hit-list"></div>
-            </div>
-            <a class="staff-orders-link" href="/staff-transactions/">Open all transactions</a>
-          </section>
-
-          <section class="staff-service-card" id="walkin-section">
-            <div class="staff-service-head"><div><h3>Walk-in Orders</h3><p>Counter service for non-prebooked customers.</p></div><span class="staff-status-chip">Counter</span></div>
-            <div class="staff-inline-inputs">
-              <input id="walkin-meal-id" type="hidden" />
-              <div id="walkin-meal-options" class="walkin-meal-options"></div>
-              <input class="hit-input" id="walkin-qty" type="number" min="1" value="1" />
-              <input class="hit-input" id="walkin-name" type="text" placeholder="Customer name" />
-              <button id="walkin-serve-btn" class="staff-dashboard-btn" type="button">Serve Walk-in</button>
-            </div>
-            <p id="walkin-status" class="status-msg"></p>
-          </section>
-
-          <section class="staff-service-card" id="served-meals-section" hidden>
-            <div class="staff-service-head"><div><h3>Meals Served</h3><p>Verified collections.</p></div></div>
-            <button id="load-served-meals-btn" class="staff-dashboard-link" type="button">Load Served Meals</button>
-            <div id="served-meals-list" class="hit-list"></div>
-          </section>
-
-          <section class="staff-service-card" id="fraud-alerts-section" hidden>
-            <div class="staff-service-head"><div><h3>Fraud Alerts</h3><p>Suspicious activity notices.</p></div></div>
-            <button id="load-fraud-alerts-btn" class="staff-dashboard-link" type="button">Load Fraud Alerts</button>
-            <div id="fraud-alerts-list" class="hit-list"></div>
           </section>
 
           <section class="staff-service-card" id="forecast-section">
@@ -539,50 +831,41 @@
               </div>
             </div>
           </section>
-
-              <section class="staff-service-card" id="reconciliation-section" hidden>
-            <div class="staff-service-head"><div><h3>Daily Reconciliation</h3><p>Compare payments, orders, and collections.</p></div></div>
-            <input class="hit-input" id="reconciliation-date" type="date" />
-            <button id="load-reconciliation-btn" class="staff-dashboard-link" type="button">Load Reconciliation</button>
-            <div id="reconciliation-output" class="hit-list"></div>
-              </section>
-            </div>
-          </details>
         </div>
       </section>
     </main>
 
     <nav class="staff-bottom-nav" aria-label="Staff navigation">
       <div class="staff-bottom-nav__grid">
-        <a class="active" href="/staff/">
+        <a class="active" href="/staff/" data-staff-home>
           <span class="staff-bottom-nav__icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           </span>
-          <span>Manage</span>
+          <span>Home</span>
         </a>
-        <a href="#cash-deposit-section">
+        <a href="#chef-queue-section" data-staff-tool="chef-queue-section">
+          <span class="staff-bottom-nav__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/></svg>
+          </span>
+          <span>Queue</span>
+        </a>
+        <a href="#meals-section" data-staff-tool="meals-section">
+          <span class="staff-bottom-nav__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M6 11h12"/><path d="M8 15h8"/><path d="M10 19h4"/></svg>
+          </span>
+          <span>Meals</span>
+        </a>
+        <a href="#cash-deposit-section" data-staff-tool="cash-deposit-section">
           <span class="staff-bottom-nav__icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5h17v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M16 12h4.5"/></svg>
           </span>
           <span>Wallets</span>
         </a>
-        <a href="#orders-section">
-          <span class="staff-bottom-nav__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h12M6 9h12M6 13.5h8M6 18h8"/></svg>
-          </span>
-          <span>Orders</span>
-        </a>
-        <a href="/staff-summary/">
+        <a href="#forecast-section" data-staff-tool="forecast-section">
           <span class="staff-bottom-nav__icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 19V9M12 19V5M19 19v-7"/></svg>
           </span>
-          <span>Reports</span>
-        </a>
-        <a href="#fraud-alerts-section">
-          <span class="staff-bottom-nav__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.84 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.84a2 2 0 0 0-3.4 0Z"/></svg>
-          </span>
-          <span>Notifications</span>
+          <span>Forecast</span>
         </a>
       </div>
     </nav>

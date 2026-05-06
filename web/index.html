@@ -1,89 +1,60 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <title>HIT Accommodation and Canteen Portal</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
 </head>
-<body class="hit-ui">
-  <div class="hit-shell">
-    <header class="hit-topbar">
-      <div class="hit-topbar__brand">
-        <div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div>
-        <div class="hit-topbar__meta">
-          <h1>HIT Canteen</h1>
-          <p>University canteen payments, ordering, and administration</p>
+<body data-page="student-login" class="hit-ui hit-split-login-page">
+  <main class="hit-split-login">
+    <section class="hit-split-login__visual">
+      <div class="hit-split-login__overlay"></div>
+      <div class="hit-split-login__copy">
+        <h1>Welcome to HIT Canteen</h1>
+        <p>Sign in to access your account</p>
+      </div>
+    </section>
+
+    <section class="hit-split-login__form-side">
+      <div class="hit-split-login__card">
+        <div class="hit-split-login__logo">
+          <div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div>
+        </div>
+
+        <div class="hit-split-login__heading">
+          <h2>Sign In</h2>
+          <p>Please sign in with your HIT account</p>
+        </div>
+
+        <form id="student-login-form" class="hit-split-login__form">
+          <input class="hit-input hit-split-login__input" id="login-email" type="email" placeholder="name@hit.ac.zw" required />
+          <div class="hit-password-wrap hit-split-login__password-wrap">
+            <input class="hit-input hit-split-login__input" id="login-password" type="password" placeholder="Enter password" required />
+            <button class="hit-password-toggle" type="button" data-toggle-password="login-password">Show</button>
+          </div>
+          <button class="hit-split-login__submit" type="submit">Sign In with HIT Account</button>
+        </form>
+
+        <p id="login-status" class="status-msg hit-split-login__status"></p>
+
+        <div class="hit-split-login__meta">
+          <a href="/student-forgot-password/">Forgot Password?</a>
+          <a href="/register/">Create Account</a>
+        </div>
+
+        <div class="hit-split-login__demo">
+          <span>Quick access:</span>
+          <button id="student-demo-fill-btn" class="hit-split-login__demo-btn" type="button">Student Demo</button>
+          <button id="staff-demo-fill-btn" class="hit-split-login__demo-btn" type="button">Staff Demo</button>
+          <button id="admin-demo-fill-btn" class="hit-split-login__demo-btn" type="button">Admin Demo</button>
         </div>
       </div>
-      <a class="hit-chip" href="/login/">Login</a>
-    </header>
-
-    <main class="hit-main hit-stack">
-      <section class="hit-card hit-card--hero hit-hero-grid">
-        <div class="hit-stack">
-          <span class="hit-badge hit-badge--gold">Harare Institute of Technology</span>
-          <div class="hit-page-head">
-            <h1>Fast, secure canteen payments for students, staff, and administrators.</h1>
-            <p>Choose your portal to order meals, validate QR payments, monitor transactions, and manage university canteen operations with a clean fintech-style interface.</p>
-          </div>
-          <div class="hit-inline-actions">
-            <a class="hit-btn" href="/login/">Login</a>
-            <a class="hit-btn-secondary" href="/register/">Create Account</a>
-            <a class="hit-btn-gold" href="/login/">Open Portal</a>
-          </div>
-        </div>
-        <div class="hit-card hit-highlight">
-          <div class="hit-stack">
-            <div class="hit-summary-card">
-              <span class="hit-badge">Wallet Payments</span>
-              <h3>Students pay by wallet or Paynow</h3>
-              <p class="hit-muted">Support seamless digital payments, wallet top-ups, and QR-based meal collection.</p>
-            </div>
-            <div class="hit-summary-card">
-              <span class="hit-badge hit-badge--gold">Fast Operations</span>
-              <h3>Staff scan and verify instantly</h3>
-              <p class="hit-muted">Use mobile-friendly scanning, transaction monitoring, and sales summaries at the service counter.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="hit-grid-3">
-        <a class="hit-action-card hit-link-card" href="/login/">
-          <div class="hit-icon-badge">ST</div>
-          <h3>Student App</h3>
-          <p class="hit-muted">Wallet, food menu, QR pay, transactions, and profile tools.</p>
-        </a>
-        <a class="hit-action-card hit-link-card" href="/login/">
-          <div class="hit-icon-badge hit-icon-badge--gold">SF</div>
-          <h3>Staff App</h3>
-          <p class="hit-muted">Scan QR, approve payments, process deposits, and track daily sales.</p>
-        </a>
-        <a class="hit-action-card hit-link-card" href="/login/">
-          <div class="hit-icon-badge">AD</div>
-          <h3>Admin Dashboard</h3>
-          <p class="hit-muted">Revenue analytics, user management, food setup, reporting, and settings.</p>
-        </a>
-      </section>
-
-      <section class="hit-card">
-        <div class="hit-section-head">
-          <div>
-            <h2>Contact HIT</h2>
-            <p class="hit-muted">Institutional details shown in a presentation-ready landing page.</p>
-          </div>
-        </div>
-        <div class="hit-grid-4">
-          <div class="hit-summary-card"><h3>Postal Address</h3><p class="hit-muted">P. O. Box BE 277, Belvedere, Harare, Zimbabwe</p></div>
-          <div class="hit-summary-card"><h3>Physical Address</h3><p class="hit-muted">Ganges Road, Belvedere, Harare</p></div>
-          <div class="hit-summary-card"><h3>Telephone</h3><p class="hit-muted">+263 242 741 422-36</p></div>
-          <div class="hit-summary-card"><h3>Email</h3><p class="hit-muted">communications@hit.ac.zw</p></div>
-        </div>
-      </section>
-    </main>
-  </div>
+    </section>
+  </main>
+  <script src="/static/app.js?v=20260414a"></script>
 </body>
 </html>
+
 
 

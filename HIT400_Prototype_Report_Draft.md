@@ -786,10 +786,280 @@ Use Harvard style for all references included in the final version. Typical sour
 
 # Appendices
 
-The appendices should include:
+## Appendix A: Extended Code Listings
 
-1. Extended code listings
-2. Additional system screenshots
-3. Configuration details
-4. Sample test data
-5. API request and response examples
+The following files are suitable for inclusion as extended code listings in the final submitted report because they capture the main implementation logic of the prototype:
+
+1. `backend/canteen/models.py`  
+   Defines the core data structures used by the system, including `User`, `Wallet`, `WalletLedgerEntry`, `PaymentTransaction`, `Meal`, `PickupSlot`, `Order`, `MealTicket`, `FraudAlert`, and `AdminSetting`.
+
+2. `backend/canteen/views.py`  
+   Contains the main API logic for registration, login, wallet top-ups, order creation, QR validation, reporting, and administration workflows.
+
+3. `backend/canteen/serializers.py`  
+   Defines request validation rules for authentication, payments, orders, ticket scanning, and settings updates.
+
+4. `backend/canteen/urls.py`  
+   Shows the API routing structure used to expose authentication, wallet, order, ticket, payment, and reporting endpoints.
+
+5. `backend/config/settings.py`  
+   Contains environment-based configuration for database selection, static files, JWT authentication, email delivery, and Paynow integration.
+
+6. `web/app.js`  
+   Provides the main frontend interaction logic for students, staff, and administrators.
+
+For the appendix section in the final formatted document, it is recommended that only selected extracts be inserted rather than the full contents of every source file. The most relevant extracts are:
+
+- The custom `User` and `WalletLedgerEntry` model definitions.
+- The `register_user`, `login`, `topup_initiate`, `create_order`, and `validate_scan` view functions.
+- The API route declarations in `backend/canteen/urls.py`.
+- The key environment settings in `backend/config/settings.py`.
+
+## Appendix B: Additional System Screenshots
+
+Additional screenshots should be included to complement the screenshots already placed in the main body of the report. The following screens are especially important:
+
+1. Student registration page.
+2. Student login page.
+3. Student menu and ordering page.
+4. Student wallet top-up page.
+5. Student QR ticket page after a successful purchase.
+6. Staff scanner and ticket verification page.
+7. Staff transaction summary page.
+8. Admin dashboard overview page.
+9. Admin reports page.
+10. Admin settings page.
+
+In addition to user interface screenshots, the system design diagrams generated for the report can also be attached as supporting appendix figures:
+
+- `report_diagrams/figure_3_1_architecture.png`
+- `report_diagrams/figure_3_2_modules.png`
+- `report_diagrams/figure_3_3_context_dfd.png`
+- `report_diagrams/figure_3_4_level1_dfd.png`
+- `report_diagrams/figure_3_5_use_case.png`
+- `report_diagrams/figure_3_6_erd.png`
+- `report_diagrams/figure_3_7_student_flow.png`
+- `report_diagrams/figure_3_8_staff_flow.png`
+
+## Appendix C: Configuration Details
+
+The prototype uses environment-based configuration so that secrets and deployment settings are not hard-coded into application logic. The main configuration items are summarized below.
+
+| Variable | Purpose |
+| --- | --- |
+| `DJANGO_SECRET_KEY` | Secret key used by Django for cryptographic signing. |
+| `DEBUG` | Enables or disables development mode. |
+| `TIME_ZONE` | Sets the application timezone. |
+| `DATABASE_URL` | Selects SQLite or PostgreSQL database connectivity. |
+| `ACCESS_TOKEN_MINUTES` | Controls JWT access token lifetime. |
+| `HIT_TICKET_SECRET` | Used to sign and verify QR meal ticket payloads. |
+| `WEBHOOK_SECRET_MOBILE_MONEY` | Validates incoming mobile money webhook signatures. |
+| `WEBHOOK_SECRET_BANK_CARD` | Validates incoming bank card webhook signatures. |
+| `WEBHOOK_SECRET_ONLINE_PAYMENT` | Validates online payment webhook signatures. |
+| `PAYNOW_INTEGRATION_ID` | Stores the Paynow merchant integration identifier. |
+| `PAYNOW_INTEGRATION_KEY` | Stores the Paynow merchant integration key. |
+| `PAYNOW_RESULT_URL` | Callback URL for Paynow transaction status updates. |
+| `PAYNOW_RETURN_URL` | Browser return URL after payment completion. |
+| `EMAIL_HOST` | SMTP host used for outgoing email. |
+| `EMAIL_HOST_USER` | SMTP username. |
+| `EMAIL_HOST_PASSWORD` | SMTP password or application password. |
+| `DEFAULT_FROM_EMAIL` | Default sender address used by the system. |
+
+Example local development configuration:
+
+```env
+DJANGO_SECRET_KEY=replace-with-strong-django-secret
+DEBUG=true
+TIME_ZONE=Africa/Harare
+DATABASE_URL=sqlite:///hit_canteen.db
+ACCESS_TOKEN_MINUTES=60
+HIT_TICKET_SECRET=replace-with-strong-ticket-secret
+WEBHOOK_SECRET_MOBILE_MONEY=replace-with-mobile-money-webhook-secret
+PAYNOW_INTEGRATION_ID=replace-with-paynow-integration-id
+PAYNOW_INTEGRATION_KEY=replace-with-paynow-integration-key
+PAYNOW_RESULT_URL=https://your-domain.example/api/v1/payments/paynow/result
+PAYNOW_RETURN_URL=https://your-domain.example/student/
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+DEFAULT_FROM_EMAIL=no-reply@hitcanteen.local
+```
+
+## Appendix D: Sample Test Data
+
+The automated backend tests use realistic seed data that reflects the main user roles and transaction flows of the system. Sample test records include:
+
+### Users
+
+| Role | Full Name | University ID | Email |
+| --- | --- | --- | --- |
+| Student | Student One | `HITSTU001` | `student1@hit.ac.zw` |
+| Staff | Staff One | `HITSTA001` | `staff1@hit.ac.zw` |
+| Admin | Admin One | `HITADM001` | `admin1@hit.ac.zw` |
+
+### Meal Data
+
+| Meal Name | Description | Price | Active |
+| --- | --- | --- | --- |
+| Sadza + Beans | Test meal | 2.50 | Yes |
+
+### Pickup Slot
+
+| Date | Start Time | End Time | Capacity |
+| --- | --- | --- | --- |
+| Current test date | 13:00 | 13:30 | 100 |
+
+### Wallet and Transaction Samples
+
+| Record Type | Identifier | Value |
+| --- | --- | --- |
+| Seed wallet credit | `SEED-CREDIT-1` | 20.00 |
+| Wallet top-up idempotency key | `topup-abc-123` | Reused request key |
+| Order idempotency key | `order-abc-123` | Reused request key |
+| Valid payment transaction | `PAY-VALID-1` | 5.00 |
+| Invalid payment transaction | `PAY-INVALID-1` | 5.00 |
+
+This sample data is useful during demonstration because it shows how the system supports verified users, wallet funding, ordering, ticket issuance, staff verification, and role-restricted administration.
+
+## Appendix E: API Request and Response Examples
+
+The backend exposes REST-style endpoints under `/api/v1/`. The following examples illustrate common request and response formats used by the prototype.
+
+### E.1 User Registration
+
+**Request**
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "full_name": "Student Two",
+  "university_id": "HITSTU002",
+  "email": "student2@hit.ac.zw",
+  "password": "Password123!",
+  "role": "student"
+}
+```
+
+**Typical Response**
+
+```json
+{
+  "detail": "Registration successful. Please verify your email before logging in.",
+  "verification_required": true
+}
+```
+
+### E.2 User Login
+
+**Request**
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "student1@hit.ac.zw",
+  "password": "Student123!"
+}
+```
+
+**Typical Response**
+
+```json
+{
+  "access_token": "<jwt-access-token>",
+  "refresh_token": "<jwt-refresh-token>",
+  "user": {
+    "email": "student1@hit.ac.zw",
+    "full_name": "Student One",
+    "role": "student"
+  }
+}
+```
+
+### E.3 Wallet Top-Up Initiation
+
+**Request**
+
+```http
+POST /api/v1/wallet/topup/initiate
+Authorization: Bearer <jwt-access-token>
+Idempotency-Key: topup-abc-123
+Content-Type: application/json
+
+{
+  "amount": "5.00",
+  "provider": "mobile_money"
+}
+```
+
+**Typical Response**
+
+```json
+{
+  "payment_transaction_id": "TOPUP-20260505-0001",
+  "status": "pending"
+}
+```
+
+### E.4 Meal Order Creation
+
+**Request**
+
+```http
+POST /api/v1/orders
+Authorization: Bearer <jwt-access-token>
+Idempotency-Key: order-abc-123
+Content-Type: application/json
+
+{
+  "meal_id": 1,
+  "slot_id": 1,
+  "quantity": 1
+}
+```
+
+**Typical Response**
+
+```json
+{
+  "detail": "Order created successfully.",
+  "order_ref": "ORD-20260505-0001",
+  "ticket_token": "<signed-ticket-token>",
+  "status": "paid"
+}
+```
+
+### E.5 Ticket Validation by Staff
+
+**Request**
+
+```http
+POST /api/v1/tickets/validate-scan
+Authorization: Bearer <jwt-access-token>
+Content-Type: application/json
+
+{
+  "token": "<signed-ticket-token>"
+}
+```
+
+**Successful Response**
+
+```json
+{
+  "detail": "Ticket valid and redeemed.",
+  "order_id": 14,
+  "order_ref": "ORD-20260505-0001",
+  "student_id": 3
+}
+```
+
+**Duplicate Scan Response**
+
+```json
+{
+  "detail": "Ticket already redeemed"
+}
+```

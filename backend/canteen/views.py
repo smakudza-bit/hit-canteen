@@ -69,6 +69,13 @@ def _safe_send_user_email(user, subject, body, category):
     return send_notification_email(user.email, subject, body, category=category, user=user)
 
 
+def _masked_phone(phone_number):
+    digits = ''.join(ch for ch in str(phone_number or '') if ch.isdigit())
+    if len(digits) <= 4:
+        return digits
+    return ('*' * max(0, len(digits) - 4)) + digits[-4:]
+
+
 def _paynow_callback_urls(request, return_path='/student/'):
     result_url = (getattr(settings, 'PAYNOW_RESULT_URL', '') or '').strip()
     return_url = (getattr(settings, 'PAYNOW_RETURN_URL', '') or '').strip()
@@ -194,25 +201,18 @@ def _ensure_seed_data():
             PickupSlot(slot_date=date.today(), start_time=time(13, 0), end_time=time(13, 30), capacity=100),
             PickupSlot(slot_date=date.today(), start_time=time(17, 0), end_time=time(17, 30), capacity=100),
         ])
-    for seed in [
-        {'email': 'admin@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITADMIN001', 'full_name': 'System Admin', 'role': 'admin', 'is_staff': True},
-        {'email': 'staff@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITSTAFF001', 'full_name': 'Canteen Staff', 'role': 'staff', 'is_staff': True},
-        {'email': 'student@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITSTUDENT001', 'full_name': 'Demo Student', 'role': 'student', 'is_staff': False},
-    ]:
-        user = User.objects.filter(email=seed['email']).first()
-        if not user:
+    if not User.objects.exists():
+        for seed in [
+            {'email': 'admin@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITADMIN001', 'full_name': 'System Admin', 'role': 'admin', 'is_staff': True},
+            {'email': 'staff@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITSTAFF001', 'full_name': 'Canteen Staff', 'role': 'staff', 'is_staff': True},
+            {'email': 'student@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITSTUDENT001', 'full_name': 'Demo Student', 'role': 'student', 'is_staff': False},
+        ]:
             user = User.objects.create_user(**seed)
-        else:
-            user.university_id = seed['university_id']
-            user.full_name = seed['full_name']
-            user.role = seed['role']
-            user.is_staff = seed['is_staff']
-            user.set_password(seed['password'])
-        user.is_email_verified = True
-        user.is_suspended = False
-        user.suspended_at = None
-        user.save()
-        Wallet.objects.get_or_create(user=user)
+            user.is_email_verified = True
+            user.is_suspended = False
+            user.suspended_at = None
+            user.save()
+            Wallet.objects.get_or_create(user=user)
 
 
 def _apply_successful_topup(tx, provider_ref, provider_note, verified=True):
@@ -733,7 +733,7 @@ def transaction_history(request):
         return Response({'detail': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
     payments = list(PaymentTransaction.objects.filter(user=request.user).order_by('-created_at')[:50])
     for payment in payments:
-        if payment.provider == 'online_payment' and payment.status == 'pending':
+        if payment.provider in {'online_payment', 'mobile_money', 'bank_card'} and payment.status == 'pending':
             _refresh_pending_paynow_transaction(payment)
     payments = list(PaymentTransaction.objects.filter(user=request.user).order_by('-created_at')[:50])
     orders = Order.objects.filter(user=request.user).select_related('meal', 'slot').order_by('-created_at')[:50]
@@ -828,17 +828,21 @@ def topup_initiate(request):
         provider=serializer.validated_data['provider'],
         amount=serializer.validated_data['amount'],
         status='pending',
+        meta_json={
+            'payment_method': serializer.validated_data['provider'],
+            'phone_number_masked': _masked_phone(serializer.validated_data.get('phone_number')),
+        },
     )
     payload = {'payment_transaction_id': tx.tx_id, 'status': tx.status}
-    if tx.provider == 'online_payment':
+    if tx.provider in {'mobile_money', 'bank_card', 'online_payment'}:
         try:
             result_url, return_url = _paynow_callback_urls(request, '/student/?topup=processing')
             _validate_public_paynow_urls(result_url, return_url)
             result = paynow_initiate(
                 reference=tx.tx_id,
                 amount=tx.amount,
-                email=serializer.validated_data.get('email') or request.user.email,
-                additional_info='HIT Canteen Wallet Top Up',
+                email=None,
+                additional_info=f"HIT Canteen Wallet Top Up ({'Mobile Money' if tx.provider == 'mobile_money' else 'Bank/Card'})",
                 result_url=result_url,
                 return_url=return_url,
             )
@@ -851,6 +855,7 @@ def topup_initiate(request):
                 'pollurl': poll_url or '',
                 'resulturl': result_url,
                 'returnurl': return_url,
+                'payment_method': tx.provider,
             }
             tx.save(update_fields=['provider_ref', 'meta_json'])
             payload['redirect_url'] = redirect_url
@@ -1169,11 +1174,16 @@ def initiate_paynow_order_payment(request):
         tx_id=gen_tx_id('PON'),
         user=request.user,
         wallet=request.user.wallet,
-        provider='online_payment',
+        provider=serializer.validated_data['provider'],
         amount=total_amount,
         status='pending',
         purpose='order_payment',
-        meta_json={'slot_id': slot.id, 'items': normalized_items},
+        meta_json={
+            'slot_id': slot.id,
+            'items': normalized_items,
+            'payment_method': serializer.validated_data['provider'],
+            'phone_number_masked': _masked_phone(serializer.validated_data.get('phone_number')),
+        },
     )
     try:
         result_url, return_url = _paynow_callback_urls(request, '/student/?paynow=processing')
@@ -1181,8 +1191,8 @@ def initiate_paynow_order_payment(request):
         result = paynow_initiate(
             reference=tx.tx_id,
             amount=tx.amount,
-            email=request.user.email,
-            additional_info=f'HIT Canteen Order Payment ({len(normalized_items)} item(s))',
+            email=None,
+            additional_info=f"HIT Canteen Order Payment ({'Mobile Money' if tx.provider == 'mobile_money' else 'Bank/Card'}, {len(normalized_items)} item(s))",
             result_url=result_url,
             return_url=return_url,
         )
@@ -1193,6 +1203,7 @@ def initiate_paynow_order_payment(request):
             'pollurl': result.get('pollurl') or '',
             'resulturl': result_url,
             'returnurl': return_url,
+            'payment_method': tx.provider,
         }
         tx.save(update_fields=['provider_ref', 'meta_json'])
     except (ValueError, HTTPError, URLError) as err:
@@ -1342,10 +1353,12 @@ def admin_kpis(request):
     role_error = _require_role(request, 'staff', 'admin')
     if role_error:
         return role_error
-    total_revenue = PaymentTransaction.objects.filter(status='succeeded').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    successful_payments_total = PaymentTransaction.objects.filter(status='succeeded').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    cash_deposits_total = CashDeposit.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_revenue = successful_payments_total + cash_deposits_total
     return Response({
         'total_revenue': float(total_revenue),
-        'total_transactions': PaymentTransaction.objects.count(),
+        'total_transactions': PaymentTransaction.objects.count() + CashDeposit.objects.count(),
         'successful_transactions': PaymentTransaction.objects.filter(status='succeeded').count(),
         'failed_payments': PaymentTransaction.objects.filter(status='failed').count(),
         'active_students': User.objects.filter(role='student', is_active=True, is_suspended=False).count(),
@@ -1353,7 +1366,8 @@ def admin_kpis(request):
         'meals_active': Meal.objects.filter(active=True).count(),
         'paid_orders': Order.objects.filter(status='paid').count(),
         'served_orders': Order.objects.filter(status='served').count(),
-        'wallet_topups': PaymentTransaction.objects.filter(status='succeeded', purpose='wallet_topup').count(),
+        'wallet_topups': PaymentTransaction.objects.filter(status='succeeded', purpose='wallet_topup').count() + CashDeposit.objects.count(),
+        'cash_deposits': CashDeposit.objects.count(),
     })
 
 
@@ -1378,10 +1392,44 @@ def admin_students(request):
             'student_id': user.university_id,
             'email': user.email,
             'balance': float(wallet_balance(user.wallet)) if hasattr(user, 'wallet') else 0.0,
+            'is_suspended': user.is_suspended,
             'status': 'Suspended' if user.is_suspended else ('Verified' if user.is_email_verified else 'Pending Verification'),
         }
         for user in users
     ])
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def admin_student_status(request, user_id):
+    suspension = _ensure_not_suspended(request.user)
+    if suspension:
+        return suspension
+    role_error = _require_role(request, 'admin')
+    if role_error:
+        return role_error
+    student = User.objects.filter(id=user_id, role='student').first()
+    if not student:
+        return Response({'detail': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+    action_name = str(request.data.get('action') or '').strip().lower()
+    if action_name not in {'activate', 'suspend'}:
+        return Response({'detail': 'Action must be activate or suspend.'}, status=status.HTTP_400_BAD_REQUEST)
+    student.is_suspended = action_name == 'suspend'
+    student.suspended_at = timezone.now() if student.is_suspended else None
+    student.save(update_fields=['is_suspended', 'suspended_at'])
+    add_audit(
+        request.user,
+        'admin_student_status_updated',
+        'user',
+        student.id,
+        f'action={action_name}, target={student.email}, {_client_context(request)}',
+    )
+    return Response({
+        'detail': f"Student account {'suspended' if student.is_suspended else 'activated'} successfully.",
+        'student_id': student.id,
+        'is_suspended': student.is_suspended,
+        'status': 'Suspended' if student.is_suspended else ('Verified' if student.is_email_verified else 'Pending Verification'),
+    })
 
 
 @api_view(['GET'])
@@ -1443,8 +1491,7 @@ def admin_all_transactions(request):
     role_error = _require_role(request, 'admin')
     if role_error:
         return role_error
-    payments = PaymentTransaction.objects.select_related('user').order_by('-created_at')[:150]
-    return Response([
+    payments = [
         {
             'transaction_id': tx.tx_id,
             'student': tx.user.full_name,
@@ -1455,8 +1502,23 @@ def admin_all_transactions(request):
             'status': tx.status.title(),
             'time': tx.created_at.isoformat(),
         }
-        for tx in payments
-    ])
+        for tx in PaymentTransaction.objects.select_related('user').order_by('-created_at')[:150]
+    ]
+    cash_deposits = [
+        {
+            'transaction_id': f'CASH-{deposit.id}',
+            'student': deposit.student.full_name,
+            'student_email': deposit.student.email,
+            'item': 'Wallet Top Up',
+            'amount': float(deposit.amount),
+            'method': 'Cash Deposit',
+            'status': 'Succeeded',
+            'time': deposit.timestamp.isoformat(),
+        }
+        for deposit in CashDeposit.objects.select_related('student').order_by('-timestamp')[:150]
+    ]
+    items = sorted(payments + cash_deposits, key=lambda item: item['time'], reverse=True)[:150]
+    return Response(items)
 
 
 @api_view(['GET'])

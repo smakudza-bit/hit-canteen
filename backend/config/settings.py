@@ -28,6 +28,7 @@ def split_env_list(name, default=''):
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='change-this-secret')
 DEBUG = config('DEBUG', default=True, cast=bool)
+PYTHONANYWHERE_DOMAIN = clean_env('PYTHONANYWHERE_DOMAIN', default='')
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
@@ -39,6 +40,10 @@ ALLOWED_HOSTS = [
 render_external_hostname = clean_env('RENDER_EXTERNAL_HOSTNAME', default='')
 if render_external_hostname:
     ALLOWED_HOSTS.append(render_external_hostname)
+if PYTHONANYWHERE_DOMAIN:
+    ALLOWED_HOSTS.append(PYTHONANYWHERE_DOMAIN)
+    if not PYTHONANYWHERE_DOMAIN.startswith('.'):
+        ALLOWED_HOSTS.append(f'.{PYTHONANYWHERE_DOMAIN}')
 ALLOWED_HOSTS += split_env_list('EXTRA_ALLOWED_HOSTS')
 ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 
@@ -48,6 +53,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 if render_external_hostname:
     CSRF_TRUSTED_ORIGINS.append(f'https://{render_external_hostname}')
+if PYTHONANYWHERE_DOMAIN:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{PYTHONANYWHERE_DOMAIN}')
 CSRF_TRUSTED_ORIGINS += split_env_list('CSRF_TRUSTED_ORIGINS_EXTRA')
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
@@ -112,19 +119,27 @@ if DATABASE_URL.startswith('sqlite:///'):
             'NAME': db_name,
         }
     }
-elif DATABASE_URL.startswith('postgresql://') or DATABASE_URL.startswith('postgresql+psycopg://'):
+elif (
+    DATABASE_URL.startswith('postgres://')
+    or DATABASE_URL.startswith('postgresql://')
+    or DATABASE_URL.startswith('postgresql+psycopg://')
+):
+    normalized_database_url = (
+        DATABASE_URL
+        .replace('postgresql+psycopg://', 'postgresql://')
+        .replace('postgres://', 'postgresql://', 1)
+    )
     if dj_database_url:
         DATABASES = {
             'default': dj_database_url.parse(
-                DATABASE_URL,
+                normalized_database_url,
                 conn_max_age=600,
-                ssl_require='sslmode=require' in DATABASE_URL.lower() or '.aivencloud.com' in DATABASE_URL.lower(),
+                ssl_require='sslmode=require' in normalized_database_url.lower() or '.aivencloud.com' in normalized_database_url.lower(),
             )
         }
     else:
-        normalized = DATABASE_URL.replace('postgresql+psycopg://', 'postgresql://')
         import urllib.parse as up
-        parsed = up.urlparse(normalized)
+        parsed = up.urlparse(normalized_database_url)
         query_params = dict(up.parse_qsl(parsed.query))
         db_config = {
             'ENGINE': 'django.db.backends.postgresql',
@@ -151,8 +166,8 @@ TIME_ZONE = config('TIME_ZONE', default='Africa/Harare')
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = '/static/'
-STATIC_ROOT = PROJECT_ROOT / 'staticfiles'
+STATIC_URL = clean_env('STATIC_URL', default='/static/')
+STATIC_ROOT = Path(clean_env('STATIC_ROOT', default=str(PROJECT_ROOT / 'staticfiles')))
 STATICFILES_DIRS = [PROJECT_ROOT / 'web']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -187,15 +202,15 @@ PAYNOW_INITIATE_URL = clean_env('PAYNOW_INITIATE_URL', default='https://www.payn
 PAYNOW_INCLUDE_AUTH_EMAIL = config('PAYNOW_INCLUDE_AUTH_EMAIL', default=True, cast=bool)
 
 EMAIL_NOTIFICATIONS_ENABLED = config('EMAIL_NOTIFICATIONS_ENABLED', default=False, cast=bool)
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_BACKEND = clean_env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = clean_env('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_HOST_USER = clean_env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = clean_env('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@hitcanteen.local')
-WORK_NOTIFICATION_EMAIL = config('WORK_NOTIFICATION_EMAIL', default='')
+DEFAULT_FROM_EMAIL = clean_env('DEFAULT_FROM_EMAIL', default='no-reply@hitcanteen.local')
+WORK_NOTIFICATION_EMAIL = clean_env('WORK_NOTIFICATION_EMAIL', default='')
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

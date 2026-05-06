@@ -3624,6 +3624,21 @@ button.list-item,
   font-size: 14px;
 }
 
+.scanner-detail-row--primary {
+  background: linear-gradient(135deg, #12307a, #0b3874);
+  border-color: rgba(18, 48, 122, 0.24);
+}
+
+.scanner-detail-row--primary span,
+.scanner-detail-row--primary strong {
+  color: #ffffff;
+}
+
+.scanner-detail-row--primary strong {
+  font-size: 1.08rem;
+  letter-spacing: 0.03em;
+}
+
 @media (max-width: 900px) {
   .scanner-shell {
     grid-template-columns: 1fr;
@@ -4229,7 +4244,12 @@ a { color: inherit; }
   color: #fff;
 }
 
+.hit-tabs.is-hidden-by-search {
+  display: none;
+}
+
 .hit-method-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hit-method-grid--compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hit-method-card.selected { border-color: var(--hit-gold); box-shadow: 0 0 0 2px rgba(212, 160, 23, 0.18); }
 
 .hit-spinner {
@@ -5119,4 +5139,941 @@ a { color: inherit; }
 .hit-header-menu-tab svg {
   width: 28px;
   height: 28px;
+}
+
+.hit-landing {
+  background:
+    linear-gradient(180deg, rgba(15, 76, 156, 0.08) 0, rgba(15, 76, 156, 0.08) 112px, #f4f7fb 112px, #f4f7fb 100%);
+  color: var(--hit-text);
+}
+
+.hit-landing__chrome {
+  height: 18px;
+  background: linear-gradient(90deg, #d5dceb 0%, #edf2fb 50%, #d5dceb 100%);
+}
+
+.hit-landing__header {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(15, 76, 156, 0.08);
+}
+
+.hit-landing__header-inner,
+.hit-landing__main {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.hit-landing__header-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 0 22px;
+}
+
+.hit-landing__brand {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.hit-landing__brand-copy h1,
+.hit-landing__brand-copy p,
+.hit-landing__hero-panel h2,
+.hit-landing__hero-panel p,
+.hit-landing__feature h3,
+.hit-landing__office h3,
+.hit-landing__footer-card h3,
+.hit-landing__footer-card p {
+  margin: 0;
+}
+
+.hit-landing__brand-copy h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.08;
+  color: #12336f;
+  margin-top: 4px;
+}
+
+.hit-landing__brand-copy p {
+  max-width: 720px;
+  color: #607393;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.hit-landing__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f4c9c;
+}
+
+.hit-landing__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hit-landing__main {
+  padding: 28px 0 48px;
+  display: grid;
+  gap: 24px;
+}
+
+.hit-landing__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.hit-landing__hero-panel {
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(15, 76, 156, 0.96), rgba(17, 52, 107, 0.98)),
+    linear-gradient(180deg, #103a82, #0f2f67);
+  color: #ffffff;
+  padding: 32px;
+  box-shadow: 0 24px 50px rgba(15, 76, 156, 0.22);
+  position: relative;
+  overflow: hidden;
+}
+
+.hit-landing__hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto -60px -100px auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 160, 23, 0.3), transparent 65%);
+}
+
+.hit-landing__hero-panel h2 {
+  margin-top: 14px;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.07;
+  max-width: 760px;
+}
+
+.hit-landing__hero-panel p {
+  margin-top: 16px;
+  max-width: 700px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 16px;
+}
+
+.hit-landing__hero-panel .hit-inline-actions {
+  margin-top: 24px;
+}
+
+.hit-landing__hero-panel .hit-btn-secondary {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.hit-landing__hero-side {
+  display: grid;
+  gap: 18px;
+}
+
+.hit-landing__stat-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 76, 156, 0.12);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 18px 38px rgba(15, 76, 156, 0.08);
+}
+
+.hit-landing__stat-card strong {
+  display: block;
+  margin-top: 16px;
+  font-size: 28px;
+  color: #12336f;
+}
+
+.hit-landing__stat-card p {
+  margin: 10px 0 0;
+  color: #66789a;
+  line-height: 1.6;
+}
+
+.hit-landing__quicklinks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.hit-landing__quicklink {
+  background: #ffffff;
+  border: 1px solid rgba(15, 76, 156, 0.12);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 14px 30px rgba(15, 76, 156, 0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.hit-landing__quicklink:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 160, 23, 0.68);
+  box-shadow: 0 20px 36px rgba(15, 76, 156, 0.1);
+}
+
+.hit-landing__quicklink-title {
+  display: block;
+  font-size: 19px;
+  font-weight: 800;
+  color: #12336f;
+}
+
+.hit-landing__quicklink-copy {
+  display: block;
+  margin-top: 10px;
+  color: #687a9a;
+  line-height: 1.55;
+}
+
+.hit-landing__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.hit-landing__feature {
+  padding: 24px;
+}
+
+.hit-landing__feature-head {
+  display: grid;
+  gap: 12px;
+}
+
+.hit-landing__feature-head h3 {
+  font-size: 24px;
+  color: #12336f;
+}
+
+.hit-landing__list {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.hit-landing__list li {
+  position: relative;
+  padding-left: 18px;
+  color: #5f7190;
+}
+
+.hit-landing__list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #d4a017;
+}
+
+.hit-landing__office {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.95fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.hit-landing__office-copy h3 {
+  margin-top: 10px;
+  font-size: 28px;
+  line-height: 1.2;
+  color: #12336f;
+}
+
+.hit-landing__office-copy .hit-muted {
+  margin-top: 16px;
+  line-height: 1.7;
+}
+
+.hit-landing__office-meta {
+  display: grid;
+  gap: 14px;
+}
+
+.hit-landing__footer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .hit-landing__hero,
+  .hit-landing__office,
+  .hit-landing__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hit-landing__quicklinks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .hit-landing__header-inner,
+  .hit-landing__brand,
+  .hit-landing__footer-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hit-landing__header-inner,
+  .hit-landing__main {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .hit-landing__hero-panel,
+  .hit-landing__stat-card,
+  .hit-landing__quicklink,
+  .hit-landing__feature,
+  .hit-landing__office {
+    border-radius: 20px;
+  }
+
+  .hit-landing__hero-panel {
+    padding: 24px;
+  }
+}
+
+.hit-split-login-page {
+  background: #e5e7eb;
+}
+
+.hit-split-login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(520px, 1fr);
+}
+
+.hit-split-login__visual {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(19, 47, 109, 0.44), rgba(19, 47, 109, 0.74)),
+    radial-gradient(circle at 72% 18%, rgba(255,255,255,0.22), transparent 18%),
+    linear-gradient(180deg, #5a84dc 0%, #355da9 36%, #243f7a 100%);
+}
+
+.hit-split-login__visual::before,
+.hit-split-login__visual::after {
+  content: "";
+  position: absolute;
+  inset: auto;
+  background: rgba(15, 34, 81, 0.28);
+}
+
+.hit-split-login__visual::before {
+  left: -6%;
+  bottom: 0;
+  width: 30%;
+  height: 76%;
+  clip-path: polygon(0 0, 72% 0, 100% 11%, 100% 100%, 0 100%);
+}
+
+.hit-split-login__visual::after {
+  right: 8%;
+  bottom: 0;
+  width: 48%;
+  height: 52%;
+  clip-path: polygon(0 22%, 52% 0, 88% 10%, 100% 100%, 0 100%);
+}
+
+.hit-split-login__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), transparent 30%),
+    linear-gradient(0deg, rgba(8, 19, 57, 0.52), rgba(8, 19, 57, 0.12));
+}
+
+.hit-split-login__copy {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(78%, 720px);
+  text-align: center;
+  color: #ffffff;
+  z-index: 1;
+}
+
+.hit-split-login__copy h1,
+.hit-split-login__copy p,
+.hit-split-login__heading h2,
+.hit-split-login__heading p {
+  margin: 0;
+}
+
+.hit-split-login__copy h1 {
+  font-size: clamp(42px, 5.6vw, 62px);
+  line-height: 1.07;
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+.hit-split-login__copy p {
+  margin-top: 28px;
+  font-size: clamp(20px, 2vw, 26px);
+  color: rgba(255,255,255,0.96);
+}
+
+.hit-split-login__form-side {
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  background: #eceff4;
+}
+
+.hit-split-login__card {
+  width: min(100%, 700px);
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 40px 48px 34px;
+  box-shadow: 0 26px 45px rgba(31, 41, 55, 0.12);
+  display: grid;
+  gap: 26px;
+  text-align: center;
+}
+
+.hit-split-login__logo {
+  display: grid;
+  justify-items: center;
+}
+
+.hit-split-login__logo .hit-logo-mark {
+  box-shadow: none;
+  background: transparent;
+}
+
+.hit-split-login__heading h2 {
+  color: #1b2f5c;
+  font-size: clamp(34px, 3.4vw, 48px);
+  font-weight: 800;
+}
+
+.hit-split-login__heading p {
+  margin-top: 12px;
+  color: #5f6d84;
+  font-size: 18px;
+}
+
+.hit-split-login__form {
+  display: grid;
+  gap: 14px;
+}
+
+.hit-split-login__input {
+  min-height: 58px;
+  border-radius: 14px;
+  border: 1px solid #d7dfec;
+  background: #f8faff;
+  font-size: 16px;
+}
+
+.hit-split-login__password-wrap {
+  background: #f8faff;
+  border-radius: 14px;
+}
+
+.hit-split-login__submit {
+  min-height: 60px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #3f6de2 0%, #2f5fda 100%);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 12px 20px rgba(47, 95, 218, 0.24);
+  cursor: pointer;
+}
+
+.hit-split-login__submit:hover {
+  transform: translateY(-1px);
+}
+
+.hit-split-login__status {
+  min-height: 24px;
+}
+
+.hit-split-login__meta {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.hit-split-login__meta a {
+  color: #244d9a;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.hit-split-login__meta a:hover {
+  text-decoration: underline;
+}
+
+.hit-split-login__demo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: #66738a;
+  font-size: 14px;
+}
+
+.hit-split-login__demo-btn {
+  border: 1px solid #c9d5ec;
+  background: #ffffff;
+  color: #1f4d97;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hit-split-login__demo-btn:hover {
+  background: #f5f8ff;
+}
+
+@media (max-width: 1180px) {
+  .hit-split-login {
+    grid-template-columns: 1fr;
+  }
+
+  .hit-split-login__visual {
+    min-height: 48vh;
+  }
+
+  .hit-split-login__copy {
+    width: min(88%, 760px);
+  }
+}
+
+@media (max-width: 720px) {
+  .hit-split-login__form-side {
+    padding: 18px 12px 24px;
+  }
+
+  .hit-split-login__card {
+    padding: 28px 18px 24px;
+    border-radius: 22px;
+  }
+
+  .hit-split-login__visual {
+    min-height: 42vh;
+  }
+
+  .hit-split-login__copy h1 {
+    font-size: clamp(34px, 8vw, 44px);
+  }
+
+  .hit-split-login__copy p {
+    margin-top: 16px;
+    font-size: 18px;
+  }
+}
+
+.hit-split-login-page {
+  background: #e6e8ed;
+}
+
+.hit-split-login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(540px, 1fr);
+}
+
+.hit-split-login__visual {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(39, 71, 151, 0.46), rgba(20, 37, 88, 0.58)),
+    url('/static/images/project.jpg') center center / cover no-repeat;
+}
+
+.hit-split-login__visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(115, 156, 255, 0.14), rgba(11, 24, 67, 0.52));
+}
+
+.hit-split-login__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(7, 15, 42, 0.18));
+}
+
+.hit-split-login__copy {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -48%);
+  width: min(78%, 760px);
+  text-align: center;
+  color: #ffffff;
+  z-index: 1;
+}
+
+.hit-split-login__copy h1,
+.hit-split-login__copy p,
+.hit-split-login__heading h2,
+.hit-split-login__heading p {
+  margin: 0;
+}
+
+.hit-split-login__copy h1 {
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  font-size: clamp(56px, 5.2vw, 72px);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.hit-split-login__copy p {
+  margin-top: 28px;
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  font-size: clamp(22px, 1.9vw, 30px);
+  font-weight: 400;
+  color: rgba(255,255,255,0.98);
+}
+
+.hit-split-login__form-side {
+  display: grid;
+  place-items: center;
+  padding: 40px 28px;
+  background: #eceef2;
+}
+
+.hit-split-login__card {
+  width: min(100%, 675px);
+  background: #ffffff;
+  border-radius: 30px;
+  padding: 48px 48px 36px;
+  box-shadow: 0 22px 40px rgba(31, 41, 55, 0.14);
+  display: grid;
+  gap: 24px;
+  text-align: center;
+}
+
+.hit-split-login__logo {
+  display: grid;
+  justify-items: center;
+}
+
+.hit-split-login__logo .hit-logo-mark {
+  box-shadow: none;
+  background: transparent;
+}
+
+.hit-split-login__heading h2 {
+  color: #172746;
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  font-size: clamp(48px, 3.4vw, 60px);
+  font-weight: 800;
+  line-height: 1.04;
+}
+
+.hit-split-login__heading p {
+  margin-top: 14px;
+  color: #58667d;
+  font-size: 19px;
+}
+
+.hit-split-login__form {
+  display: grid;
+  gap: 14px;
+}
+
+.hit-split-login__input {
+  min-height: 58px;
+  border-radius: 14px;
+  border: 1px solid #d7dfec;
+  background: #f8faff;
+  font-size: 16px;
+}
+
+.hit-split-login__password-wrap {
+  background: #f8faff;
+  border-radius: 14px;
+}
+
+.hit-split-login__submit {
+  min-height: 60px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #3f6de2 0%, #2f5fda 100%);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 12px 20px rgba(47, 95, 218, 0.24);
+  cursor: pointer;
+}
+
+.hit-split-login__submit:hover {
+  transform: translateY(-1px);
+}
+
+.hit-split-login__status {
+  min-height: 24px;
+}
+
+.hit-split-login__meta {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.hit-split-login__meta a {
+  color: #244d9a;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.hit-split-login__meta a:hover {
+  text-decoration: underline;
+}
+
+.hit-split-login__demo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: #66738a;
+  font-size: 14px;
+}
+
+.hit-split-login__demo-btn {
+  border: 1px solid #c9d5ec;
+  background: #ffffff;
+  color: #1f4d97;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hit-split-login__demo-btn:hover {
+  background: #f5f8ff;
+}
+
+@media (max-width: 1180px) {
+  .hit-split-login {
+    grid-template-columns: 1fr;
+  }
+
+  .hit-split-login__visual {
+    min-height: 52vh;
+  }
+
+  .hit-split-login__copy {
+    width: min(88%, 760px);
+  }
+}
+
+@media (max-width: 720px) {
+  .hit-split-login__form-side {
+    padding: 18px 12px 24px;
+  }
+
+  .hit-split-login__card {
+    padding: 28px 18px 24px;
+    border-radius: 22px;
+  }
+
+  .hit-split-login__visual {
+    min-height: 44vh;
+  }
+
+  .hit-split-login__copy h1 {
+    font-size: clamp(36px, 8vw, 46px);
+  }
+
+  .hit-split-login__copy p {
+    margin-top: 16px;
+    font-size: 18px;
+  }
+
+  .hit-split-login__heading h2 {
+    font-size: 40px;
+  }
+}
+
+.hit-logo-mark.hit-logo-lockup {
+  display: inline-block;
+  width: 220px;
+  height: 78px;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  border-radius: 0;
+  background: url('/static/images/HITlogo.png') center center / contain no-repeat !important;
+  box-shadow: none !important;
+}
+
+.hit-logo-mark.hit-logo-lockup::before,
+.hit-logo-mark.hit-logo-lockup::after,
+.hit-logo-mark.hit-logo-lockup .hit-logo-lockup__mark,
+.hit-logo-mark.hit-logo-lockup .hit-logo-lockup__text {
+  display: none !important;
+}
+
+.hit-topbar .hit-logo-mark.hit-logo-lockup {
+  width: 210px;
+  height: 74px;
+}
+
+.hit-auth__header .hit-logo-mark.hit-logo-lockup,
+.hit-split-login__logo .hit-logo-mark.hit-logo-lockup {
+  width: 240px;
+  height: 84px;
+}
+
+@media (max-width: 640px) {
+  .hit-logo-mark.hit-logo-lockup {
+    width: 180px;
+    height: 64px;
+  }
+
+  .hit-auth__header .hit-logo-mark.hit-logo-lockup,
+  .hit-split-login__logo .hit-logo-mark.hit-logo-lockup {
+    width: 210px;
+    height: 74px;
+  }
+}
+
+.hit-away-logout-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 1200;
+  min-width: min(92vw, 420px);
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(15, 36, 88, 0.96);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 18px 32px rgba(15, 36, 88, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.hit-away-logout-banner.is-active {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Final compact login layout */
+.hit-split-login {
+  grid-template-columns: minmax(0, 1.18fr) minmax(420px, 0.82fr);
+}
+
+.hit-split-login__form-side {
+  padding: 24px 20px;
+}
+
+.hit-split-login__card {
+  width: min(100%, 520px);
+  border-radius: 24px;
+  padding: 28px 30px 24px;
+  gap: 18px;
+  box-shadow: 0 18px 34px rgba(31, 41, 55, 0.12);
+}
+
+.hit-split-login__logo .hit-logo-mark.hit-logo-lockup {
+  width: 190px;
+  height: 66px;
+}
+
+.hit-split-login__heading h2 {
+  font-size: clamp(30px, 2.6vw, 38px);
+  line-height: 1.02;
+}
+
+.hit-split-login__heading p {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.hit-split-login__form {
+  gap: 12px;
+}
+
+.hit-split-login__input {
+  min-height: 50px;
+  font-size: 15px;
+}
+
+.hit-split-login__submit {
+  min-height: 52px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+
+.hit-split-login__meta {
+  gap: 14px;
+}
+
+.hit-split-login__meta a {
+  font-size: 14px;
+}
+
+.hit-split-login__demo {
+  gap: 8px;
+  font-size: 12px;
+}
+
+.hit-split-login__demo-btn {
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .hit-split-login {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .hit-split-login__card {
+    width: min(100%, 420px);
+    padding: 24px 18px 20px;
+  }
+
+  .hit-split-login__logo .hit-logo-mark.hit-logo-lockup {
+    width: 172px;
+    height: 60px;
+  }
+
+  .hit-split-login__heading h2 {
+    font-size: 28px;
+  }
+
+  .hit-split-login__heading p {
+    font-size: 14px;
+  }
 }

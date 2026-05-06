@@ -25,7 +25,7 @@ urlpatterns = [
     path('student-transactions/', TemplateView.as_view(template_name='student-transactions.html')),
     path('student-profile/', TemplateView.as_view(template_name='student-profile.html')),
 
-    path('staff-login/', TemplateView.as_view(template_name='student-login.html')),
+    path('staff-login/', TemplateView.as_view(template_name='staff-login.html')),
     path('staff/', TemplateView.as_view(template_name='staff.html')),
     path('staff-scanner/', TemplateView.as_view(template_name='staff-scanner.html')),
     path('staff-verify/', TemplateView.as_view(template_name='staff-verify.html')),
@@ -33,7 +33,7 @@ urlpatterns = [
     path('staff-transactions/', TemplateView.as_view(template_name='staff-transactions.html')),
     path('staff-summary/', TemplateView.as_view(template_name='staff-summary.html')),
 
-    path('admin-login/', TemplateView.as_view(template_name='student-login.html')),
+    path('admin-login/', TemplateView.as_view(template_name='admin-login.html')),
     path('admin/', TemplateView.as_view(template_name='admin.html')),
     path('admin-students/', TemplateView.as_view(template_name='admin-students.html')),
     path('admin-staff/', TemplateView.as_view(template_name='admin-staff.html')),

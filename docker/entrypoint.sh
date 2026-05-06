@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env sh
+#!/usr/bin/env sh
 set -e
 
 python backend/manage.py migrate --noinput

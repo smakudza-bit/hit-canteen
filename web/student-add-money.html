@@ -1,3 +1,106 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Add Money | HIT Canteen</title><link rel="stylesheet" href="/static/styles.css" /></head><body data-page="student-add-money" class="hit-ui"><div class="hit-shell"><header class="hit-topbar"><div class="hit-topbar__brand"><div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div><div class="hit-topbar__meta"><h1>Add Money</h1><p>Top up your student wallet</p></div></div><a class="hit-chip" href="/student/">Back</a></header><main class="hit-main hit-stack"><section class="hit-card hit-balance-card"><div class="hit-balance-card__row"><div><span class="hit-badge hit-badge--gold">Current Balance</span><div id="wallet-balance" class="hit-balance-amount">Balance: $0.00</div></div><div class="hit-icon-badge hit-icon-badge--gold">$</div></div></section><section class="hit-card"><div class="hit-section-head"><div><h2>Add Money</h2><p class="hit-muted">Select an amount and payment method.</p></div></div><div class="hit-inline-actions"><button class="hit-chip">$1</button><button class="hit-chip">$2</button><button class="hit-chip">$5</button><button class="hit-chip">$10</button></div><div class="hit-field" style="margin-top:16px;"><label class="hit-label">Custom Amount</label><input class="hit-input" type="number" placeholder="Enter amount" /></div><div class="hit-method-grid" style="margin-top:16px;"><button class="hit-method-card selected" type="button"><strong>EcoCash</strong><span class="hit-muted">Instant mobile money</span></button><button class="hit-method-card" type="button"><strong>Paynow</strong><span class="hit-muted">Gateway payment</span></button><button class="hit-method-card" type="button"><strong>Bank Card</strong><span class="hit-muted">Visa / Mastercard</span></button></div><div style="margin-top:16px;"><button id="wallet-topup-open-btn" class="hit-btn" type="button">Continue</button></div><p id="wallet-status" class="status-msg"></p></section></main><div id="wallet-topup-modal" class="wallet-modal" hidden><div class="wallet-modal__backdrop" data-close-wallet-modal="true"></div><section class="wallet-modal__panel" aria-labelledby="wallet-topup-title"><div class="wallet-modal__header"><div><h2 id="wallet-topup-title">Add Money</h2><p>Use a secure payment option to fund your HIT wallet.</p></div><button id="wallet-topup-close-btn" class="wallet-modal__close" type="button">x</button></div><div class="wallet-methods wallet-methods--two"><button class="wallet-method active" type="button" data-wallet-method="paynow">Paynow</button><button class="wallet-method" type="button" data-wallet-method="cash">Cash at Counter</button></div><div class="wallet-panel active" id="wallet-panel-paynow"><div class="hit-form-stack"><input class="hit-input" id="wallet-paynow-amount" type="number" min="0.01" step="0.01" placeholder="Amount" /><input class="hit-input" id="wallet-paynow-email" type="email" placeholder="Payer email address" /><button id="wallet-paynow-submit" class="hit-btn" type="button">Create Paynow Top Up</button></div></div><div class="wallet-panel" id="wallet-panel-cash"><div class="hit-form-stack"><input class="hit-input" id="wallet-cash-amount" type="number" min="0.01" step="0.01" placeholder="Amount handed to cashier" /><input class="hit-input" id="wallet-cash-reference" type="text" placeholder="Receipt number or teller name" /><button id="wallet-cash-submit" class="hit-btn-secondary" type="button">Submit Cash Deposit Request</button></div></div><p id="wallet-modal-status" class="status-msg"></p></section></div></div><script src="/static/app.js?v=20260414a"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Money | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
+</head>
+<body data-page="student-add-money" class="hit-ui">
+  <div class="hit-shell">
+    <header class="hit-topbar">
+      <div class="hit-topbar__brand">
+        <div class="hit-logo-mark hit-logo-lockup">
+          <span class="hit-logo-lockup__mark">HIT</span>
+          <span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span>
+        </div>
+        <div class="hit-topbar__meta">
+          <h1>Add Money</h1>
+          <p>Top up your student wallet</p>
+        </div>
+      </div>
+      <a class="hit-chip" href="/student/">Back</a>
+    </header>
 
+    <main class="hit-main hit-stack">
+      <section class="hit-card hit-balance-card">
+        <div class="hit-balance-card__row">
+          <div>
+            <span class="hit-badge hit-badge--gold">Current Balance</span>
+            <div id="wallet-balance" class="hit-balance-amount">Balance: $0.00</div>
+          </div>
+          <div class="hit-icon-badge hit-icon-badge--gold">$</div>
+        </div>
+      </section>
 
+      <section class="hit-card">
+        <div class="hit-section-head">
+          <div>
+            <h2>Add Money</h2>
+            <p class="hit-muted">Enter the amount in USD, choose how to complete the Paynow payment, and continue.</p>
+          </div>
+        </div>
+
+        <div class="hit-form-stack">
+          <div class="hit-field">
+            <label class="hit-label" for="student-topup-amount">Amount</label>
+            <input id="student-topup-amount" class="hit-input" type="number" min="0.01" step="0.01" placeholder="Enter amount in USD" />
+          </div>
+
+          <div class="hit-field">
+            <label class="hit-label">Payment Method</label>
+            <div class="hit-method-grid hit-method-grid--compact">
+              <button class="hit-method-card selected" type="button" data-student-topup-method="ecocash">
+                <strong>Pay with Mobile Money</strong>
+                <span class="hit-muted">Use a USD mobile money account through Paynow</span>
+              </button>
+              <button class="hit-method-card" type="button" data-student-topup-method="bank">
+                <strong>Pay with Bank/Card</strong>
+                <span class="hit-muted">Use a USD-enabled bank or card through Paynow</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <button id="wallet-topup-open-btn" class="hit-btn" type="button">Continue to Paynow</button>
+          </div>
+        </div>
+
+        <p id="wallet-status" class="status-msg"></p>
+      </section>
+    </main>
+
+    <div id="wallet-topup-modal" class="wallet-modal" hidden>
+      <div class="wallet-modal__backdrop" data-close-wallet-modal="true"></div>
+      <section class="wallet-modal__panel" aria-labelledby="wallet-topup-title">
+        <div class="wallet-modal__header">
+          <div>
+            <h2 id="wallet-topup-title">Add Money</h2>
+            <p>Complete your Paynow top up using USD mobile money or a USD-enabled bank/card.</p>
+          </div>
+          <button id="wallet-topup-close-btn" class="wallet-modal__close" type="button">x</button>
+        </div>
+
+        <div class="wallet-methods wallet-methods--two">
+          <button class="wallet-method active" type="button" data-wallet-method="ecocash">Pay with Mobile Money</button>
+          <button class="wallet-method" type="button" data-wallet-method="bank">Pay with Bank/Card</button>
+        </div>
+
+        <div class="wallet-panel active" id="wallet-panel-paynow">
+          <div class="hit-form-stack">
+            <input class="hit-input" id="wallet-paynow-amount" type="number" min="0.01" step="0.01" placeholder="Amount in USD" />
+            <input class="hit-input" id="wallet-paynow-phone" type="tel" placeholder="USD mobile money phone number" />
+            <p id="wallet-bank-note" class="hit-muted" hidden>Your bank/card authentication will happen securely on the Paynow or bank page. Use a USD-enabled account only.</p>
+            <button id="wallet-paynow-submit" class="hit-btn" type="button">Continue with EcoCash</button>
+            <button id="wallet-paynow-retry" class="hit-btn-secondary" type="button">Try Again</button>
+          </div>
+        </div>
+
+        <p id="wallet-modal-status" class="status-msg"></p>
+      </section>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=20260414a"></script>
+</body>
+</html>

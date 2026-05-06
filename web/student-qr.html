@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>My QR | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
 </head>
 <body data-page="student-qr" class="hit-ui">
   <div class="hit-shell">
@@ -87,7 +87,7 @@
           qrBox.innerHTML = `<div class="ticket-card__qr hit-qr-live">${ticket.qr_svg || ticket.ticket_qr_svg || '<div class="hit-empty-state">QR unavailable for this ticket.</div>'}</div>`;
           if (qrMeta) {
             const expiresText = ticket.expires_at ? `Valid until ${new Date(ticket.expires_at).toLocaleString()}` : 'Ticket issued';
-            qrMeta.textContent = `${ticket.order_ref || ticket.ticket_id} | ${expiresText}`;
+            qrMeta.textContent = `Collection No. ${ticket.order_ref || ticket.ticket_id} | ${expiresText}`;
           }
           setStatus('QR ticket loaded successfully.');
         } catch (error) {
