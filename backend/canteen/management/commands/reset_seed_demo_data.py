@@ -27,6 +27,7 @@ from canteen.models import (
 from canteen.utils import create_ticket, gen_tx_id
 
 
+DEMO_PASSWORD = 'Demo@1234'
 STUDENT_SEEDS = [
     ('TINOTENDA GARANDE', 'H240107M'),
     ('MacAlister Mutore', 'H240302T'),
@@ -34,6 +35,8 @@ STUDENT_SEEDS = [
     ('Anesu Chimiso', 'H240035Q'),
     ('Trish Chipunza', 'H240261J'),
     ('Vanessa Gota', 'H240383P'),
+    ('Tamuka Makudza', 'H240764A'),
+    ('Anesu Christine Bob', 'H240442A'),
 ]
 FRAUD_STUDENT_SEEDS = [
     ('Tafadzwa Nyari', 'H240411F'),
@@ -89,7 +92,7 @@ class Command(BaseCommand):
             university_id='HITADMIN001',
             role='admin',
             is_staff=True,
-            password='Demo@1234',
+            password=DEMO_PASSWORD,
         )
         staff = self._create_user(
             email='staff@hit.ac.zw',
@@ -97,7 +100,7 @@ class Command(BaseCommand):
             university_id='HITSTAFF001',
             role='staff',
             is_staff=True,
-            password='Demo@1234',
+            password=DEMO_PASSWORD,
         )
 
         students = [
@@ -107,7 +110,7 @@ class Command(BaseCommand):
                 university_id=university_id,
                 role='student',
                 is_staff=False,
-                password=full_name,
+                password=DEMO_PASSWORD,
             )
             for full_name, university_id in STUDENT_SEEDS
         ]
@@ -118,7 +121,7 @@ class Command(BaseCommand):
                 university_id=university_id,
                 role='student',
                 is_staff=False,
-                password=full_name,
+                password=DEMO_PASSWORD,
             )
             for full_name, university_id in FRAUD_STUDENT_SEEDS
         ]

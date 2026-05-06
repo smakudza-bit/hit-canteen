@@ -187,6 +187,33 @@ def _build_verification_url(request, user):
     return request.build_absolute_uri(f"/api/v1/auth/verify-email/{uid}/{token}")
 
 
+def _ensure_demo_user(*, email, password, university_id, full_name, role, is_staff):
+    user = User.objects.filter(email=email).first()
+    if not user:
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            university_id=university_id,
+            full_name=full_name,
+            role=role,
+            is_staff=is_staff,
+        )
+    updated_fields = []
+    if not user.is_email_verified:
+        user.is_email_verified = True
+        updated_fields.append('is_email_verified')
+    if user.is_suspended:
+        user.is_suspended = False
+        updated_fields.append('is_suspended')
+    if user.suspended_at is not None:
+        user.suspended_at = None
+        updated_fields.append('suspended_at')
+    if updated_fields:
+        user.save(update_fields=updated_fields)
+    Wallet.objects.get_or_create(user=user)
+    return user
+
+
 def _ensure_seed_data():
     if not Meal.objects.exists():
         Meal.objects.bulk_create([
@@ -201,18 +228,12 @@ def _ensure_seed_data():
             PickupSlot(slot_date=date.today(), start_time=time(13, 0), end_time=time(13, 30), capacity=100),
             PickupSlot(slot_date=date.today(), start_time=time(17, 0), end_time=time(17, 30), capacity=100),
         ])
-    if not User.objects.exists():
-        for seed in [
-            {'email': 'admin@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITADMIN001', 'full_name': 'System Admin', 'role': 'admin', 'is_staff': True},
-            {'email': 'staff@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITSTAFF001', 'full_name': 'Canteen Staff', 'role': 'staff', 'is_staff': True},
-            {'email': 'student@hit.ac.zw', 'password': 'Demo@1234', 'university_id': 'HITSTUDENT001', 'full_name': 'Demo Student', 'role': 'student', 'is_staff': False},
-        ]:
-            user = User.objects.create_user(**seed)
-            user.is_email_verified = True
-            user.is_suspended = False
-            user.suspended_at = None
-            user.save()
-            Wallet.objects.get_or_create(user=user)
+    for seed in [
+        {'email': 'admin@hit.ac.zw', 'password': DEMO_PASSWORD, 'university_id': 'HITADMIN001', 'full_name': 'System Admin', 'role': 'admin', 'is_staff': True},
+        {'email': 'staff@hit.ac.zw', 'password': DEMO_PASSWORD, 'university_id': 'HITSTAFF001', 'full_name': 'Canteen Staff', 'role': 'staff', 'is_staff': True},
+        {'email': 'student@hit.ac.zw', 'password': DEMO_PASSWORD, 'university_id': 'HITSTUDENT001', 'full_name': 'Demo Student', 'role': 'student', 'is_staff': False},
+    ]:
+        _ensure_demo_user(**seed)
 
 
 def _apply_successful_topup(tx, provider_ref, provider_note, verified=True):
