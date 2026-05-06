@@ -38,30 +38,11 @@
           <div class="hit-section-head">
             <div>
               <h2>Checkout</h2>
-              <p class="hit-muted">Confirm your meal and pay using a USD mobile money or bank/card account.</p>
+              <p class="hit-muted">Confirm your meal and pay using your account balance only.</p>
             </div>
           </div>
 
           <div id="cart-chart" class="hit-list-card">Cart summary by item</div>
-
-          <div class="hit-field">
-            <label class="hit-label">Payment Method</label>
-            <div class="hit-method-grid hit-method-grid--compact">
-              <button class="hit-method-card selected" type="button" data-cart-provider="mobile_money">
-                <strong>Pay with Mobile Money</strong>
-                <span class="hit-muted">Use your USD mobile money number, then confirm on EcoCash.</span>
-              </button>
-              <button class="hit-method-card" type="button" data-cart-provider="bank_card">
-                <strong>Pay with Bank/Card</strong>
-                <span class="hit-muted">Continue to secure USD bank or card confirmation.</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="hit-field" id="cart-mobile-money-field">
-            <label class="hit-label" for="cart-mobile-money-phone">Mobile Money Phone Number</label>
-            <input class="hit-input" id="cart-mobile-money-phone" type="tel" placeholder="Enter USD EcoCash phone number" />
-          </div>
 
           <div class="hit-list-row">
             <strong>Total</strong>
@@ -69,9 +50,7 @@
           </div>
 
           <div class="hit-actions-row">
-            <button id="wallet-cart-btn" class="hit-btn-gold" type="button">Pay from Wallet</button>
-            <button id="checkout-cart-btn" class="hit-btn" type="button">Confirm Payment</button>
-            <button id="retry-payment-btn" class="hit-btn-secondary" type="button">Try Again</button>
+            <button id="wallet-cart-btn" class="hit-btn-gold" type="button">Pay with Account Balance</button>
           </div>
           <p id="order-status" class="status-msg"></p>
         </section>
