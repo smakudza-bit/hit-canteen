@@ -1472,7 +1472,7 @@ function getSelectedCartPaymentMethod() {
 }
 
 function setSelectedCartPaymentMethod(method) {
-  const normalizedMethod = method === "bank_card" ? "bank_card" : "mobile_money";
+  const normalizedMethod = method === "wallet" ? "wallet" : (method === "bank_card" ? "bank_card" : "mobile_money");
   document.querySelectorAll("[data-cart-provider]").forEach((button) => {
     button.classList.toggle("selected", button.dataset.cartProvider === normalizedMethod);
   });
@@ -1481,7 +1481,7 @@ function setSelectedCartPaymentMethod(method) {
   if (phoneField) phoneField.hidden = normalizedMethod !== "mobile_money";
   if (phoneInput) phoneInput.required = normalizedMethod === "mobile_money";
   const checkoutButton = id("checkout-cart-btn");
-  if (checkoutButton) checkoutButton.textContent = "Confirm Payment";
+  if (checkoutButton) checkoutButton.textContent = normalizedMethod === "wallet" ? "Pay from Wallet" : "Confirm Payment";
 }
 
 function openWalletModal(method = "ecocash") {
@@ -1566,6 +1566,28 @@ async function placeOrdersFromCart() {
     return;
   }
   try {
+    if (provider === "wallet") {
+      setButtonBusy(checkoutButton, true, "Charging wallet...");
+      const data = await req("/api/v1/orders", "POST", {
+        items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
+      }, { "Idempotency-Key": nextIdempotencyKey("wallet-order") });
+      const createdOrders = Array.isArray(data.orders) ? data.orders : [data];
+      const latestOrder = createdOrders[createdOrders.length - 1] || null;
+      cart = [];
+      persistCart();
+      renderCart();
+      await loadWallet();
+      await loadTransactionHistory();
+      await loadMyTickets();
+      showStatus("order-status", data.detail || `Wallet payment successful for ${createdOrders.length} item(s).`);
+      if (latestOrder?.order_id) {
+        localStorage.setItem("last_ticket_order_id", String(latestOrder.order_id));
+        setTimeout(() => {
+          window.location.href = "/student-qr/";
+        }, 400);
+      }
+      return;
+    }
     setButtonBusy(checkoutButton, true, provider === "mobile_money" ? "Sending payment request..." : "Opening secure confirmation...");
     const data = await req("/api/v1/orders/paynow/initiate", "POST", {
       provider,

@@ -47,6 +47,10 @@
           <div class="hit-field">
             <label class="hit-label">Payment Method</label>
             <div class="hit-method-grid hit-method-grid--compact">
+              <button class="hit-method-card" type="button" data-cart-provider="wallet">
+                <strong>Pay from Wallet</strong>
+                <span class="hit-muted">Use your current student account balance directly.</span>
+              </button>
               <button class="hit-method-card selected" type="button" data-cart-provider="mobile_money">
                 <strong>Pay with Mobile Money</strong>
                 <span class="hit-muted">Use your USD mobile money number, then confirm on EcoCash.</span>
@@ -78,6 +82,6 @@
     {% include 'partials/student-bottom-nav.html' %}
   </div>
 
-  <script src="/static/app.js?v=20260414a"></script>
+  <script src="/static/app.js?v=20260506c"></script>
 </body>
 </html>

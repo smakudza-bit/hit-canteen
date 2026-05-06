@@ -1125,26 +1125,51 @@ def create_order(request):
         cached = get_cached_idempotency(request.user, 'orders', idem_key)
         if cached:
             return Response(cached.response_body, status=cached.status_code)
-    meal = Meal.objects.filter(id=serializer.validated_data['meal_id'], active=True).first()
     slot = _get_service_slot()
-    if not meal:
-        return Response({'detail': 'Meal not found'}, status=status.HTTP_404_NOT_FOUND)
-    if meal.stock_quantity < serializer.validated_data['quantity']:
-        return Response({'detail': 'Meal stock is not enough for this order'}, status=status.HTTP_400_BAD_REQUEST)
-    total_amount = meal.price * serializer.validated_data['quantity']
+    items = serializer.validated_data.get('items') or []
+    if not items:
+        items = [{
+            'meal_id': serializer.validated_data['meal_id'],
+            'quantity': serializer.validated_data['quantity'],
+        }]
+    meal_ids = [item['meal_id'] for item in items]
+    meals = {meal.id: meal for meal in Meal.objects.filter(id__in=meal_ids, active=True)}
+    normalized_items = []
+    total_amount = Decimal('0.00')
+    for item in items:
+        meal = meals.get(item['meal_id'])
+        quantity = int(item['quantity'])
+        if not meal:
+            return Response({'detail': 'One of the selected meals is no longer available.'}, status=status.HTTP_404_NOT_FOUND)
+        if meal.stock_quantity < quantity:
+            return Response({'detail': f'{meal.name} does not have enough stock for this order.'}, status=status.HTTP_400_BAD_REQUEST)
+        total_amount += meal.price * quantity
+        normalized_items.append({'meal': meal, 'quantity': quantity})
     wallet = _wallet_for(request.user)
     if wallet_balance(wallet) < total_amount:
         return Response({'detail': 'Insufficient wallet balance'}, status=status.HTTP_400_BAD_REQUEST)
+    created_orders = []
     with transaction.atomic():
-        order, ticket = _create_paid_order_ticket(request.user, meal, slot, serializer.validated_data['quantity'])
-        WalletLedgerEntry.objects.create(wallet=wallet, tx_id=gen_tx_id('DEBIT'), entry_type='debit', amount=total_amount, provider='wallet', note=f'Order payment {order.order_ref}')
-    payload = _ticket_payload(order, ticket)
+        meals = {entry['meal'].id: Meal.objects.select_for_update().get(id=entry['meal'].id) for entry in normalized_items}
+        for entry in normalized_items:
+            meal = meals[entry['meal'].id]
+            quantity = entry['quantity']
+            if meal.stock_quantity < quantity:
+                return Response({'detail': f'{meal.name} does not have enough stock for this order.'}, status=status.HTTP_400_BAD_REQUEST)
+        for entry in normalized_items:
+            meal = meals[entry['meal'].id]
+            quantity = entry['quantity']
+            order, ticket = _create_paid_order_ticket(request.user, meal, slot, quantity)
+            created_orders.append(_ticket_payload(order, ticket))
+        WalletLedgerEntry.objects.create(wallet=wallet, tx_id=gen_tx_id('DEBIT'), entry_type='debit', amount=total_amount, provider='wallet', note=f'Order payment batch ({len(created_orders)} item(s))')
+    payload = created_orders[0] if len(created_orders) == 1 else {'orders': created_orders}
+    payload['detail'] = f'Wallet payment successful for {len(created_orders)} item(s).'
     _flag_rapid_ordering(request.user, request)
-    add_audit(request.user, 'create_order', 'order', order.id, _client_context(request))
+    add_audit(request.user, 'create_order', 'order', created_orders[0]['order_id'], _client_context(request))
     _safe_send_user_email(
         request.user,
         'HIT Canteen order confirmation',
-        f'Hello {request.user.full_name},\n\nYour order has been confirmed.\nOrder reference: {order.order_ref}\nMeal: {meal.name}\nQuantity: {order.quantity}\nTotal paid from wallet: ${order.total_amount:.2f}\n\nPresent your QR ticket at collection.',
+        f'Hello {request.user.full_name},\n\nYour order has been confirmed.\nItems paid from wallet: {len(created_orders)}\nTotal paid from wallet: ${total_amount:.2f}\n\nPresent your QR ticket at collection.',
         'order_confirmation',
     )
     if idem_key:

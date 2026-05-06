@@ -65,14 +65,24 @@ class PaymentWebhookSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=['succeeded', 'failed'])
 
 
-class OrderCreateSerializer(serializers.Serializer):
-    meal_id = serializers.IntegerField(min_value=1)
-    quantity = serializers.IntegerField(min_value=1, max_value=5, default=1)
-
-
 class PaynowOrderItemSerializer(serializers.Serializer):
     meal_id = serializers.IntegerField(min_value=1)
     quantity = serializers.IntegerField(min_value=1, max_value=5, default=1)
+
+
+class OrderCreateSerializer(serializers.Serializer):
+    meal_id = serializers.IntegerField(min_value=1, required=False)
+    quantity = serializers.IntegerField(min_value=1, max_value=5, default=1)
+    items = PaynowOrderItemSerializer(many=True, required=False)
+
+    def validate(self, attrs):
+        items = attrs.get('items') or []
+        meal_id = attrs.get('meal_id')
+        if items and meal_id:
+            raise serializers.ValidationError({'items': ['Provide either a single meal or cart items, not both.']})
+        if not items and not meal_id:
+            raise serializers.ValidationError({'meal_id': ['Select a meal to order.']})
+        return attrs
 
 
 class PaynowOrderInitiateSerializer(serializers.Serializer):
