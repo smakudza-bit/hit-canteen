@@ -214,6 +214,11 @@ def _ensure_demo_user(*, email, password, university_id, full_name, role, is_sta
     return user
 
 
+def _wallet_for(user):
+    wallet, _ = Wallet.objects.get_or_create(user=user)
+    return wallet
+
+
 def _ensure_seed_data():
     if not Meal.objects.exists():
         Meal.objects.bulk_create([
@@ -629,9 +634,7 @@ def wallet_detail(request):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    wallet = getattr(request.user, 'wallet', None)
-    if not wallet:
-        return Response({'detail': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
+    wallet = _wallet_for(request.user)
     return Response({'wallet_id': wallet.id, 'balance': float(wallet_balance(wallet)), 'status': wallet.status})
 
 
@@ -648,10 +651,10 @@ def student_lookup_by_id(request):
     student_id = (request.query_params.get('student_id') or '').strip()
     if not student_id:
         return Response({'detail': 'Student ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    student = User.objects.filter(university_id=student_id, role='student').first()
+    student = User.objects.filter(university_id__iexact=student_id, role='student').first()
     if not student:
         return Response({'detail': 'Student account not found.'}, status=status.HTTP_404_NOT_FOUND)
-    wallet = Wallet.objects.get_or_create(user=student)[0]
+    wallet = _wallet_for(student)
     return Response({
         'student_id': student.university_id,
         'full_name': student.full_name,
@@ -701,11 +704,11 @@ def cash_deposits(request):
     if amount <= 0:
         return Response({'detail': 'Deposits must be greater than zero.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    student = User.objects.filter(university_id=student_id, role='student').first()
+    student = User.objects.filter(university_id__iexact=student_id, role='student').first()
     if not student:
         return Response({'detail': 'Student account not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    wallet, _ = Wallet.objects.get_or_create(user=student)
+    wallet = _wallet_for(student)
     with transaction.atomic():
         deposit = CashDeposit.objects.create(
             student=student,
@@ -739,9 +742,7 @@ def wallet_ledger(request):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    wallet = getattr(request.user, 'wallet', None)
-    if not wallet:
-        return Response({'detail': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
+    wallet = _wallet_for(request.user)
     entries = wallet.entries.order_by('-created_at')[:50]
     return Response([{'tx_id': e.tx_id, 'type': e.entry_type, 'amount': float(e.amount), 'provider': e.provider, 'note': e.note, 'created_at': e.created_at.isoformat()} for e in entries])
 
@@ -752,9 +753,7 @@ def transaction_history(request):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    wallet = getattr(request.user, 'wallet', None)
-    if not wallet:
-        return Response({'detail': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
+    wallet = _wallet_for(request.user)
     payments = list(PaymentTransaction.objects.filter(user=request.user).order_by('-created_at')[:50])
     for payment in payments:
         if payment.provider in {'online_payment', 'mobile_money', 'bank_card'} and payment.status == 'pending':
@@ -844,7 +843,7 @@ def topup_initiate(request):
         cached = get_cached_idempotency(request.user, 'wallet/topup/initiate', idem_key)
         if cached:
             return Response(cached.response_body, status=cached.status_code)
-    wallet = request.user.wallet
+    wallet = _wallet_for(request.user)
     tx = PaymentTransaction.objects.create(
         tx_id=gen_tx_id('TOPUP'),
         user=request.user,
@@ -1133,11 +1132,12 @@ def create_order(request):
     if meal.stock_quantity < serializer.validated_data['quantity']:
         return Response({'detail': 'Meal stock is not enough for this order'}, status=status.HTTP_400_BAD_REQUEST)
     total_amount = meal.price * serializer.validated_data['quantity']
-    if wallet_balance(request.user.wallet) < total_amount:
+    wallet = _wallet_for(request.user)
+    if wallet_balance(wallet) < total_amount:
         return Response({'detail': 'Insufficient wallet balance'}, status=status.HTTP_400_BAD_REQUEST)
     with transaction.atomic():
         order, ticket = _create_paid_order_ticket(request.user, meal, slot, serializer.validated_data['quantity'])
-        WalletLedgerEntry.objects.create(wallet=request.user.wallet, tx_id=gen_tx_id('DEBIT'), entry_type='debit', amount=total_amount, provider='wallet', note=f'Order payment {order.order_ref}')
+        WalletLedgerEntry.objects.create(wallet=wallet, tx_id=gen_tx_id('DEBIT'), entry_type='debit', amount=total_amount, provider='wallet', note=f'Order payment {order.order_ref}')
     payload = _ticket_payload(order, ticket)
     _flag_rapid_ordering(request.user, request)
     add_audit(request.user, 'create_order', 'order', order.id, _client_context(request))
@@ -1188,7 +1188,7 @@ def initiate_paynow_order_payment(request):
     tx = PaymentTransaction.objects.create(
         tx_id=gen_tx_id('PON'),
         user=request.user,
-        wallet=request.user.wallet,
+        wallet=_wallet_for(request.user),
         provider=serializer.validated_data['provider'],
         amount=total_amount,
         status='pending',
