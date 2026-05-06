@@ -1544,6 +1544,10 @@ async function placeOrdersFromCart() {
     return;
   }
   const totalBefore = cartTotal();
+  if (walletBalance() < totalBefore) {
+    showStatus("order-status", "Insufficient balance. Top up your wallet and try again.", false);
+    return;
+  }
   try {
     setButtonBusy(walletButton, true, "Charging account...");
     const data = await req("/api/v1/orders", "POST", {
@@ -1570,7 +1574,11 @@ async function placeOrdersFromCart() {
       }, 400);
     }
   } catch (err) {
-    showStatus("order-status", err.message || "Unable to create the order.", false);
+    const rawMessage = err.message || "Unable to create the order.";
+    const message = String(rawMessage).toLowerCase().includes("insufficient wallet balance")
+      ? "Insufficient balance. Top up your wallet and try again."
+      : rawMessage;
+    showStatus("order-status", message, false);
   } finally {
     setButtonBusy(walletButton, false);
   }
