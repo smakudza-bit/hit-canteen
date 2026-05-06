@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cart | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260506c" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260506d" />
 </head>
 <body data-page="student-cart" class="hit-ui">
   <div class="hit-shell">
@@ -49,6 +49,11 @@
             <strong id="cart-total">Total: $0.00</strong>
           </div>
 
+          <div class="hit-list-row">
+            <strong>Available Balance</strong>
+            <strong id="cart-wallet-balance">Balance: $0.00</strong>
+          </div>
+
           <div class="hit-actions-row">
             <button id="wallet-cart-btn" class="hit-btn-gold" type="button">Pay with Account Balance</button>
           </div>
@@ -60,6 +65,6 @@
     {% include 'partials/student-bottom-nav.html' %}
   </div>
 
-  <script src="/static/app.js?v=20260506c"></script>
+  <script src="/static/app.js?v=20260506d"></script>
 </body>
 </html>

@@ -705,6 +705,7 @@ function setWalletBalance(value) {
     id("wallet-balance").textContent = page() === "student" || page() === "student-add-money" ? formatted : `Balance: ${formatted}`;
   }
   if (id("wallet-balance-corner")) id("wallet-balance-corner").textContent = `Balance: ${formatted}`;
+  if (id("cart-wallet-balance")) id("cart-wallet-balance").textContent = `Balance: ${formatted}`;
 }
 
 function nextIdempotencyKey(prefix) {
@@ -2306,7 +2307,7 @@ async function hydrateStudentCartPage() {
   if (!token) return redirectToLogin('student');
   bindLogout();
   renderCart();
-  await loadMenuAndSlots();
+  await loadWallet();
   id('wallet-cart-btn')?.addEventListener('click', placeOrdersFromCart);
 }
 
