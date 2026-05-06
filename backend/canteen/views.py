@@ -1162,8 +1162,10 @@ def create_order(request):
             order, ticket = _create_paid_order_ticket(request.user, meal, slot, quantity)
             created_orders.append(_ticket_payload(order, ticket))
         WalletLedgerEntry.objects.create(wallet=wallet, tx_id=gen_tx_id('DEBIT'), entry_type='debit', amount=total_amount, provider='wallet', note=f'Order payment batch ({len(created_orders)} item(s))')
+    updated_wallet_balance = float(wallet_balance(wallet))
     payload = created_orders[0] if len(created_orders) == 1 else {'orders': created_orders}
     payload['detail'] = f'Wallet payment successful for {len(created_orders)} item(s).'
+    payload['wallet_balance_after'] = updated_wallet_balance
     _flag_rapid_ordering(request.user, request)
     add_audit(request.user, 'create_order', 'order', created_orders[0]['order_id'], _client_context(request))
     _safe_send_user_email(

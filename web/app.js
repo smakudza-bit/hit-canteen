@@ -1543,6 +1543,7 @@ async function placeOrdersFromCart() {
     showStatus("order-status", "Add at least one meal to the cart.", false);
     return;
   }
+  const totalBefore = cartTotal();
   try {
     setButtonBusy(walletButton, true, "Charging account...");
     const data = await req("/api/v1/orders", "POST", {
@@ -1553,7 +1554,12 @@ async function placeOrdersFromCart() {
     cart = [];
     persistCart();
     renderCart();
-    await loadWallet();
+    if (typeof data.wallet_balance_after === "number") {
+      setWalletBalance(data.wallet_balance_after);
+    } else {
+      setWalletBalance(Math.max(0, walletBalance() - totalBefore));
+      await loadWallet();
+    }
     await loadTransactionHistory();
     await loadMyTickets();
     showStatus("order-status", data.detail || `Account balance payment successful for ${createdOrders.length} item(s).`);
