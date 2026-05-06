@@ -1472,7 +1472,7 @@ function getSelectedCartPaymentMethod() {
 }
 
 function setSelectedCartPaymentMethod(method) {
-  const normalizedMethod = method === "wallet" ? "wallet" : (method === "bank_card" ? "bank_card" : "mobile_money");
+  const normalizedMethod = method === "bank_card" ? "bank_card" : "mobile_money";
   document.querySelectorAll("[data-cart-provider]").forEach((button) => {
     button.classList.toggle("selected", button.dataset.cartProvider === normalizedMethod);
   });
@@ -1481,7 +1481,7 @@ function setSelectedCartPaymentMethod(method) {
   if (phoneField) phoneField.hidden = normalizedMethod !== "mobile_money";
   if (phoneInput) phoneInput.required = normalizedMethod === "mobile_money";
   const checkoutButton = id("checkout-cart-btn");
-  if (checkoutButton) checkoutButton.textContent = normalizedMethod === "wallet" ? "Pay from Wallet" : "Confirm Payment";
+  if (checkoutButton) checkoutButton.textContent = "Confirm Payment";
 }
 
 function openWalletModal(method = "ecocash") {
@@ -1553,13 +1553,14 @@ function bindWalletModal() {
   });
 }
 
-async function placeOrdersFromCart() {
+async function placeOrdersFromCart(forcedProvider = "") {
   const checkoutButton = id("checkout-cart-btn");
+  const walletButton = id("wallet-cart-btn");
   if (!cart.length) {
     showStatus("order-status", "Add at least one meal to the cart.", false);
     return;
   }
-  const provider = getSelectedCartPaymentMethod();
+  const provider = forcedProvider || getSelectedCartPaymentMethod();
   const phoneNumber = (id("cart-mobile-money-phone")?.value || "").trim();
   if (provider === "mobile_money" && !phoneNumber) {
     showStatus("order-status", "Enter the mobile money phone number.", false);
@@ -1567,7 +1568,8 @@ async function placeOrdersFromCart() {
   }
   try {
     if (provider === "wallet") {
-      setButtonBusy(checkoutButton, true, "Charging wallet...");
+      setButtonBusy(walletButton, true, "Charging wallet...");
+      if (checkoutButton) checkoutButton.disabled = true;
       const data = await req("/api/v1/orders", "POST", {
         items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
       }, { "Idempotency-Key": nextIdempotencyKey("wallet-order") });
@@ -1589,6 +1591,7 @@ async function placeOrdersFromCart() {
       return;
     }
     setButtonBusy(checkoutButton, true, provider === "mobile_money" ? "Sending payment request..." : "Opening secure confirmation...");
+    if (walletButton) walletButton.disabled = true;
     const data = await req("/api/v1/orders/paynow/initiate", "POST", {
       provider,
       phone_number: phoneNumber,
@@ -1607,6 +1610,7 @@ async function placeOrdersFromCart() {
     showStatus("order-status", err.message || "Unable to create the order.", false);
   } finally {
     setButtonBusy(checkoutButton, false);
+    setButtonBusy(walletButton, false);
   }
 }
 
@@ -2353,6 +2357,7 @@ async function hydrateStudentCartPage() {
   });
   setSelectedCartPaymentMethod(getSelectedCartPaymentMethod());
   id('checkout-cart-btn')?.addEventListener('click', placeOrdersFromCart);
+  id('wallet-cart-btn')?.addEventListener('click', () => placeOrdersFromCart('wallet'));
   id('retry-payment-btn')?.addEventListener('click', () => {
     showStatus('order-status', '', true);
     if (getSelectedCartPaymentMethod() === 'mobile_money') {
