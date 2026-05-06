@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cart | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260506c" />
 </head>
 <body data-page="student-cart" class="hit-ui">
   <div class="hit-shell">
@@ -47,10 +47,6 @@
           <div class="hit-field">
             <label class="hit-label">Payment Method</label>
             <div class="hit-method-grid hit-method-grid--compact">
-              <button class="hit-method-card" type="button" data-cart-provider="wallet">
-                <strong>Pay from Wallet</strong>
-                <span class="hit-muted">Use your current student account balance directly.</span>
-              </button>
               <button class="hit-method-card selected" type="button" data-cart-provider="mobile_money">
                 <strong>Pay with Mobile Money</strong>
                 <span class="hit-muted">Use your USD mobile money number, then confirm on EcoCash.</span>
@@ -72,8 +68,11 @@
             <strong id="cart-total">Total: $0.00</strong>
           </div>
 
-          <button id="checkout-cart-btn" class="hit-btn" type="button">Confirm Payment</button>
-          <button id="retry-payment-btn" class="hit-btn-secondary" type="button">Try Again</button>
+          <div class="hit-actions-row">
+            <button id="wallet-cart-btn" class="hit-btn-gold" type="button">Pay from Wallet</button>
+            <button id="checkout-cart-btn" class="hit-btn" type="button">Confirm Payment</button>
+            <button id="retry-payment-btn" class="hit-btn-secondary" type="button">Try Again</button>
+          </div>
           <p id="order-status" class="status-msg"></p>
         </section>
       </section>
