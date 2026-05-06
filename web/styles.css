@@ -4768,6 +4768,51 @@ a { color: inherit; }
   text-align: center;
 }
 
+.hit-line-chart {
+  width: 100%;
+}
+
+.hit-line-chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hit-line-chart__grid {
+  stroke: rgba(15, 76, 156, 0.12);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+
+.hit-line-chart__tick,
+.hit-line-chart__label {
+  fill: #5e6d8a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hit-line-chart__area {
+  fill: rgba(37, 99, 235, 0.12);
+}
+
+.hit-line-chart__stroke {
+  fill: none;
+  stroke: #1d4ed8;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hit-line-chart__dot {
+  fill: #1d4ed8;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.hit-line-chart__dot--latest {
+  fill: #d4a017;
+}
+
 
 .hit-toolbar-actions {
   display: flex;

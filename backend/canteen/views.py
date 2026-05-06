@@ -236,6 +236,20 @@ def _ensure_seed_data():
         _ensure_demo_user(**seed)
 
 
+def _get_service_slot():
+    _ensure_seed_data()
+    current_date = timezone.localdate()
+    slot = PickupSlot.objects.filter(slot_date__gte=current_date).order_by('slot_date', 'start_time').first()
+    if slot:
+        return slot
+    return PickupSlot.objects.create(
+        slot_date=current_date,
+        start_time=time(13, 0),
+        end_time=time(13, 30),
+        capacity=1000,
+    )
+
+
 def _apply_successful_topup(tx, provider_ref, provider_note, verified=True):
     first_success = not WalletLedgerEntry.objects.filter(tx_id=tx.tx_id).exists()
     if first_success:
@@ -303,26 +317,17 @@ def _apply_successful_order_payment(tx, provider_ref, verified=True):
         tx.save(update_fields=['status', 'callback_verified', 'provider_ref', 'updated_at'])
         return
 
-    slot_id = meta.get('slot_id')
     items = meta.get('items') or []
-    slot = PickupSlot.objects.filter(id=slot_id).first()
-    if not slot or not items:
+    slot = _get_service_slot()
+    if not items:
         _apply_successful_topup(tx, provider_ref, 'Paynow payment settled as wallet credit because the order payload was incomplete.', verified=verified)
         meta['wallet_credited'] = True
-        meta['fallback_reason'] = 'missing_slot_or_items'
+        meta['fallback_reason'] = 'missing_items'
         tx.meta_json = meta
         tx.save(update_fields=['meta_json'])
         return
 
     meals = {meal.id: meal for meal in Meal.objects.filter(id__in=[item.get('meal_id') for item in items], active=True)}
-    booked_total = sum(int(item.get('quantity') or 0) for item in items)
-    if slot_booked_qty(slot) + booked_total > slot.capacity:
-        _apply_successful_topup(tx, provider_ref, 'Paynow payment settled as wallet credit because the selected pickup slot became full.', verified=verified)
-        meta['wallet_credited'] = True
-        meta['fallback_reason'] = 'slot_full'
-        tx.meta_json = meta
-        tx.save(update_fields=['meta_json'])
-        return
 
     for item in items:
         meal = meals.get(item.get('meal_id'))
@@ -338,8 +343,6 @@ def _apply_successful_order_payment(tx, provider_ref, verified=True):
     created_orders = []
     with transaction.atomic():
         slot = PickupSlot.objects.select_for_update().get(id=slot.id)
-        if slot_booked_qty(slot) + booked_total > slot.capacity:
-            raise ValueError('Pickup slot became full before payment confirmation.')
         meals = {meal.id: meal for meal in Meal.objects.select_for_update().filter(id__in=meals.keys(), active=True)}
         for item in items:
             meal = meals[item['meal_id']]
@@ -757,11 +760,11 @@ def transaction_history(request):
         if payment.provider in {'online_payment', 'mobile_money', 'bank_card'} and payment.status == 'pending':
             _refresh_pending_paynow_transaction(payment)
     payments = list(PaymentTransaction.objects.filter(user=request.user).order_by('-created_at')[:50])
-    orders = Order.objects.filter(user=request.user).select_related('meal', 'slot').order_by('-created_at')[:50]
+    orders = Order.objects.filter(user=request.user).select_related('meal').order_by('-created_at')[:50]
     ledger = wallet.entries.order_by('-created_at')[:50]
     return Response({
         'payments': [{'tx_id': p.tx_id, 'amount': float(p.amount), 'provider': p.provider, 'status': p.status, 'purpose': p.purpose, 'meta_json': p.meta_json, 'provider_ref': p.provider_ref, 'created_at': p.created_at.isoformat()} for p in payments],
-        'orders': [{'order_ref': o.order_ref, 'meal': o.meal.name, 'quantity': o.quantity, 'total_amount': float(o.total_amount), 'status': o.status, 'created_at': o.created_at.isoformat(), 'pickup_slot': f"{o.slot.start_time.strftime('%H:%M')} - {o.slot.end_time.strftime('%H:%M')}"} for o in orders],
+        'orders': [{'order_ref': o.order_ref, 'meal': o.meal.name, 'quantity': o.quantity, 'total_amount': float(o.total_amount), 'status': o.status, 'created_at': o.created_at.isoformat()} for o in orders],
         'ledger': [{'tx_id': l.tx_id, 'type': l.entry_type, 'amount': float(l.amount), 'provider': l.provider, 'note': l.note, 'created_at': l.created_at.isoformat()} for l in ledger],
     })
 
@@ -1124,11 +1127,9 @@ def create_order(request):
         if cached:
             return Response(cached.response_body, status=cached.status_code)
     meal = Meal.objects.filter(id=serializer.validated_data['meal_id'], active=True).first()
-    slot = PickupSlot.objects.filter(id=serializer.validated_data['slot_id']).first()
-    if not meal or not slot:
-        return Response({'detail': 'Meal or pickup slot not found'}, status=status.HTTP_404_NOT_FOUND)
-    if slot_booked_qty(slot) + serializer.validated_data['quantity'] > slot.capacity:
-        return Response({'detail': 'Pickup slot is full'}, status=status.HTTP_400_BAD_REQUEST)
+    slot = _get_service_slot()
+    if not meal:
+        return Response({'detail': 'Meal not found'}, status=status.HTTP_404_NOT_FOUND)
     if meal.stock_quantity < serializer.validated_data['quantity']:
         return Response({'detail': 'Meal stock is not enough for this order'}, status=status.HTTP_400_BAD_REQUEST)
     total_amount = meal.price * serializer.validated_data['quantity']
@@ -1143,7 +1144,7 @@ def create_order(request):
     _safe_send_user_email(
         request.user,
         'HIT Canteen order confirmation',
-        f'Hello {request.user.full_name},\n\nYour order has been confirmed.\nOrder reference: {order.order_ref}\nMeal: {meal.name}\nQuantity: {order.quantity}\nPickup slot: {slot.start_time.strftime("%H:%M")} - {slot.end_time.strftime("%H:%M")}\nTotal paid from wallet: ${order.total_amount:.2f}\n\nPresent your QR ticket at pickup.',
+        f'Hello {request.user.full_name},\n\nYour order has been confirmed.\nOrder reference: {order.order_ref}\nMeal: {meal.name}\nQuantity: {order.quantity}\nTotal paid from wallet: ${order.total_amount:.2f}\n\nPresent your QR ticket at collection.',
         'order_confirmation',
     )
     if idem_key:
@@ -1168,14 +1169,11 @@ def initiate_paynow_order_payment(request):
         if cached:
             return Response(cached.response_body, status=cached.status_code)
 
-    slot = PickupSlot.objects.filter(id=serializer.validated_data['slot_id']).first()
-    if not slot:
-        return Response({'detail': 'Pickup slot not found.'}, status=status.HTTP_404_NOT_FOUND)
+    slot = _get_service_slot()
 
     meal_ids = [item['meal_id'] for item in items]
     meals = {meal.id: meal for meal in Meal.objects.filter(id__in=meal_ids, active=True)}
     total_amount = Decimal('0.00')
-    booked_total = 0
     normalized_items = []
     for item in items:
         meal = meals.get(item['meal_id'])
@@ -1184,12 +1182,8 @@ def initiate_paynow_order_payment(request):
         quantity = int(item['quantity'])
         if meal.stock_quantity < quantity:
             return Response({'detail': f'{meal.name} does not have enough stock for this order.'}, status=status.HTTP_400_BAD_REQUEST)
-        booked_total += quantity
         total_amount += meal.price * quantity
         normalized_items.append({'meal_id': meal.id, 'quantity': quantity, 'meal_name': meal.name, 'price': float(meal.price)})
-
-    if slot_booked_qty(slot) + booked_total > slot.capacity:
-        return Response({'detail': 'Pickup slot is full.'}, status=status.HTTP_400_BAD_REQUEST)
 
     tx = PaymentTransaction.objects.create(
         tx_id=gen_tx_id('PON'),
@@ -1200,10 +1194,10 @@ def initiate_paynow_order_payment(request):
         status='pending',
         purpose='order_payment',
         meta_json={
-            'slot_id': slot.id,
             'items': normalized_items,
             'payment_method': serializer.validated_data['provider'],
             'phone_number_masked': _masked_phone(serializer.validated_data.get('phone_number')),
+            'service_slot_id': slot.id,
         },
     )
     try:
@@ -1281,12 +1275,12 @@ def order_detail(request, order_id):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    order = Order.objects.select_related('meal', 'slot', 'user').filter(id=order_id).first()
+    order = Order.objects.select_related('meal', 'user').filter(id=order_id).first()
     if not order:
         return Response({'detail': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
     if request.user.role == 'student' and order.user_id != request.user.id:
         return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
-    return Response({'order_id': order.id, 'order_ref': order.order_ref, 'meal': order.meal.name, 'quantity': order.quantity, 'total_amount': float(order.total_amount), 'status': order.status, 'student_name': order.user.full_name, 'pickup_slot': f"{order.slot.start_time.strftime('%H:%M')} - {order.slot.end_time.strftime('%H:%M')}"})
+    return Response({'order_id': order.id, 'order_ref': order.order_ref, 'meal': order.meal.name, 'quantity': order.quantity, 'total_amount': float(order.total_amount), 'status': order.status, 'student_name': order.user.full_name})
 
 
 @api_view(['GET'])
@@ -1691,7 +1685,7 @@ def served_meals(request):
         return role_error
     orders = (
         Order.objects.filter(status='served')
-        .select_related('user', 'meal', 'slot', 'mealticket')
+        .select_related('user', 'meal', 'mealticket')
         .order_by('-created_at')[:50]
     )
     return Response([
@@ -1704,7 +1698,6 @@ def served_meals(request):
             'quantity': order.quantity,
             'total_amount': float(order.total_amount),
             'served_at': order.mealticket.redeemed_at.isoformat() if getattr(order, 'mealticket', None) and order.mealticket.redeemed_at else None,
-            'pickup_slot': f"{order.slot.start_time.strftime('%H:%M')} - {order.slot.end_time.strftime('%H:%M')}",
         }
         for order in orders
     ])

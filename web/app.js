@@ -28,11 +28,6 @@ const demoMeals = [
   { id: 5, name: "Water 500ml", price: 0.8, description: "Still water" },
 ];
 
-const demoSlots = [
-  { id: 1, start_time: "13:00", end_time: "13:30", booked: 8, capacity: 100, estimated_wait_minutes: 3 },
-  { id: 2, start_time: "17:00", end_time: "17:30", booked: 2, capacity: 100, estimated_wait_minutes: 2 },
-];
-
 function id(name) { return document.getElementById(name); }
 function page() { return document.body.dataset.page; }
 
@@ -851,7 +846,7 @@ function renderStaffMeals(meals) {
 function renderSlots(slots) {
   const node = id("slots-list");
   if (!node) return;
-  node.innerHTML = slots.map((slot) => `<div class="list-item"><strong>#${slot.id}</strong> ${slot.start_time}-${slot.end_time} | booked ${slot.booked}/${slot.capacity} | wait ${slot.estimated_wait_minutes}m</div>`).join("");
+  node.innerHTML = "";
 }
 
 function renderTickets() {
@@ -961,7 +956,7 @@ function renderStaffOrders(orders) {
 function renderServedMeals(orders) {
   const node = id("served-meals-list");
   if (!node) return;
-  node.innerHTML = orders.length ? orders.map((order) => `<div class="list-item"><strong>${order.order_ref}</strong> | ${order.student_name} | ${order.meal} x${order.quantity} | served ${order.served_at ? new Date(order.served_at).toLocaleString() : "recently"} | slot ${order.pickup_slot}</div>`).join("") : '<p class="hint">No served meals yet.</p>';
+  node.innerHTML = orders.length ? orders.map((order) => `<div class="list-item"><strong>${order.order_ref}</strong> | ${order.student_name} | ${order.meal} x${order.quantity} | served ${order.served_at ? new Date(order.served_at).toLocaleString() : "recently"}</div>`).join("") : '<p class="hint">No served meals yet.</p>';
 }
 
 function renderFraudAlerts(alerts) {
@@ -1260,16 +1255,14 @@ async function loadWallet() {
 
 async function loadMenuAndSlots() {
   try {
-    const [meals, slots] = await Promise.all([req("/api/v1/menu"), req("/api/v1/pickup-slots")]);
+    const meals = await req("/api/v1/menu");
     const safeMeals = meals.length ? meals : demoMeals;
     renderMenu("menu-list", safeMeals);
     renderStaffMeals(safeMeals);
-    renderSlots(slots.length ? slots : demoSlots);
     populateWalkinMenu(safeMeals);
   } catch {
     if (page() === "student" || page() === "student-menu") renderDashboardMenuCards(demoMeals); else renderMenu("menu-list", demoMeals);
     renderStaffMeals(demoMeals);
-    renderSlots(demoSlots);
     populateWalkinMenu(demoMeals);
   }
 }
@@ -1324,7 +1317,7 @@ async function checkPendingPaynowOrderReturn() {
   if (payment.status === "succeeded" && meta.wallet_credited) {
     setPendingPaynowOrderTx("");
     await loadWallet();
-    showStatus("order-status", "Paynow payment was received, but your selected slot or meal changed. The amount has been credited to your wallet so you can place the order again.", false);
+    showStatus("order-status", "Paynow payment was received, but one of your selected meals changed. The amount has been credited to your wallet so you can place the order again.", false);
     if (hasReturnFlag) window.history.replaceState({}, "", "/student/");
     return;
   }
@@ -1566,11 +1559,6 @@ async function placeOrdersFromCart() {
     showStatus("order-status", "Add at least one meal to the cart.", false);
     return;
   }
-  const slotId = Number(id("cart-slot-id")?.value || 0);
-  if (!slotId) {
-    showStatus("order-status", "Enter a valid pickup slot ID.", false);
-    return;
-  }
   const provider = getSelectedCartPaymentMethod();
   const phoneNumber = (id("cart-mobile-money-phone")?.value || "").trim();
   if (provider === "mobile_money" && !phoneNumber) {
@@ -1580,7 +1568,6 @@ async function placeOrdersFromCart() {
   try {
     setButtonBusy(checkoutButton, true, provider === "mobile_money" ? "Sending payment request..." : "Opening secure confirmation...");
     const data = await req("/api/v1/orders/paynow/initiate", "POST", {
-      slot_id: slotId,
       provider,
       phone_number: phoneNumber,
       items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
@@ -2349,7 +2336,7 @@ async function hydrateStudentCartPage() {
     if (getSelectedCartPaymentMethod() === 'mobile_money') {
       id('cart-mobile-money-phone')?.focus();
     } else {
-      id('cart-slot-id')?.focus();
+      id('checkout-cart-btn')?.focus();
     }
   });
   await checkPendingPaynowOrderReturn();
@@ -2864,8 +2851,15 @@ function getAdminReportPeriodMeta(period) {
       includes(date) {
         return date >= new Date(todayStart.getTime() - 56 * 24 * 60 * 60 * 1000);
       },
+      bucketKey(date) {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - start.getDay());
+        return start.toISOString().slice(0, 10);
+      },
       bucketLabel(date) {
         const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
         start.setDate(start.getDate() - start.getDay());
         return `${start.toLocaleString('en-US', { month: 'short' })} ${start.getDate()}`;
       },
@@ -2877,6 +2871,9 @@ function getAdminReportPeriodMeta(period) {
       subtitle: 'Sales totals for the last 6 months.',
       includes(date) {
         return date >= new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      },
+      bucketKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       },
       bucketLabel(date) {
         return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
@@ -2891,6 +2888,11 @@ function getAdminReportPeriodMeta(period) {
         const day = date.getDay();
         return date >= new Date(todayStart.getTime() - 56 * 24 * 60 * 60 * 1000) && (day === 0 || day === 6);
       },
+      bucketKey(date) {
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+        return normalized.toISOString().slice(0, 10);
+      },
       bucketLabel(date) {
         return `${date.toLocaleString('en-US', { month: 'short' })} ${date.getDate()} ${date.toLocaleString('en-US', { weekday: 'short' })}`;
       },
@@ -2902,10 +2904,60 @@ function getAdminReportPeriodMeta(period) {
     includes(date) {
       return date >= new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
     },
+    bucketKey(date) {
+      const normalized = new Date(date);
+      normalized.setHours(0, 0, 0, 0);
+      return normalized.toISOString().slice(0, 10);
+    },
     bucketLabel(date) {
       return date.toLocaleString('en-US', { weekday: 'short' });
     },
   };
+}
+
+function renderAdminSalesLineChart(entries) {
+  const width = 720;
+  const height = 240;
+  const padding = { top: 20, right: 20, bottom: 44, left: 24 };
+  const values = entries.map(([, item]) => Number(item.value || 0));
+  const max = Math.max(...values, 1);
+  const min = 0;
+  const usableWidth = width - padding.left - padding.right;
+  const usableHeight = height - padding.top - padding.bottom;
+  const stepX = entries.length > 1 ? usableWidth / (entries.length - 1) : 0;
+  const points = entries.map(([, item], index) => {
+    const value = Number(item.value || 0);
+    const x = entries.length === 1 ? width / 2 : padding.left + (index * stepX);
+    const y = padding.top + usableHeight - (((value - min) / (max - min || 1)) * usableHeight);
+    return { x, y, value, label: item.label };
+  });
+  const polyline = points.map((point) => `${point.x},${point.y}`).join(' ');
+  const area = `${padding.left},${padding.top + usableHeight} ${polyline} ${points[points.length - 1].x},${padding.top + usableHeight}`;
+  const yTicks = 4;
+  const gridLines = Array.from({ length: yTicks + 1 }, (_, index) => {
+    const y = padding.top + ((usableHeight / yTicks) * index);
+    const tickValue = max - ((max / yTicks) * index);
+    return `
+      <line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" class="hit-line-chart__grid" />
+      <text x="${padding.left - 6}" y="${y + 4}" text-anchor="end" class="hit-line-chart__tick">${escapeHtml(formatCurrency(tickValue))}</text>
+    `;
+  }).join('');
+  const pointMarkers = points.map((point, index) => `
+    <g>
+      <circle cx="${point.x}" cy="${point.y}" r="${index === points.length - 1 ? 5 : 4}" class="hit-line-chart__dot${index === points.length - 1 ? ' hit-line-chart__dot--latest' : ''}" />
+      <text x="${point.x}" y="${height - 16}" text-anchor="middle" class="hit-line-chart__label">${escapeHtml(point.label)}</text>
+    </g>
+  `).join('');
+  return `
+    <div class="hit-line-chart">
+      <svg viewBox="0 0 ${width} ${height}" class="hit-line-chart__svg" role="img" aria-label="Sales trend line graph">
+        ${gridLines}
+        <path d="M ${polyline.replaceAll(' ', ' L ')}" class="hit-line-chart__stroke" />
+        <polygon points="${area}" class="hit-line-chart__area" />
+        ${pointMarkers}
+      </svg>
+    </div>
+  `;
 }
 
 function renderAdminRevenueChart(period, transactions) {
@@ -2924,25 +2976,19 @@ function renderAdminRevenueChart(period, transactions) {
   succeeded.forEach((item) => {
     const date = new Date(item.time);
     if (Number.isNaN(date.getTime()) || !meta.includes(date)) return;
-    const label = meta.bucketLabel(date);
-    buckets.set(label, (buckets.get(label) || 0) + Number(item.amount || 0));
+    const key = meta.bucketKey(date);
+    const existing = buckets.get(key) || { label: meta.bucketLabel(date), value: 0 };
+    existing.value += Number(item.amount || 0);
+    buckets.set(key, existing);
   });
-  const entries = Array.from(buckets.entries());
+  const entries = Array.from(buckets.entries()).sort(([left], [right]) => left.localeCompare(right));
   if (!entries.length) {
     chart.innerHTML = '<div class="hit-empty-state">No sales recorded for this reporting period.</div>';
     return;
   }
-  const max = Math.max(...entries.map(([, value]) => value), 1);
   chart.innerHTML = `
-    <div class="hit-chart-bars">
-      ${entries.map(([label, value], index) => `
-        <div class="hit-chart-bar-wrap">
-          <div class="hit-chart-bar ${index === entries.length - 1 ? 'hit-chart-bar--gold' : ''}" style="height:${Math.max(18, Math.round((value / max) * 100))}%"></div>
-          <span class="hit-chart-label">${escapeHtml(label)}</span>
-        </div>
-      `).join('')}
-    </div>
-    <p class="hit-muted">Total sales in focus: <strong>${formatCurrency(entries.reduce((sum, [, value]) => sum + value, 0))}</strong></p>
+    ${renderAdminSalesLineChart(entries)}
+    <p class="hit-muted">Total sales in focus: <strong>${formatCurrency(entries.reduce((sum, [, item]) => sum + Number(item.value || 0), 0))}</strong></p>
   `;
 }
 

@@ -67,7 +67,6 @@ class PaymentWebhookSerializer(serializers.Serializer):
 
 class OrderCreateSerializer(serializers.Serializer):
     meal_id = serializers.IntegerField(min_value=1)
-    slot_id = serializers.IntegerField(min_value=1)
     quantity = serializers.IntegerField(min_value=1, max_value=5, default=1)
 
 
@@ -77,7 +76,6 @@ class PaynowOrderItemSerializer(serializers.Serializer):
 
 
 class PaynowOrderInitiateSerializer(serializers.Serializer):
-    slot_id = serializers.IntegerField(min_value=1)
     items = PaynowOrderItemSerializer(many=True)
     provider = serializers.ChoiceField(choices=['mobile_money', 'bank_card'])
     phone_number = serializers.CharField(required=False, allow_blank=True, max_length=32)
