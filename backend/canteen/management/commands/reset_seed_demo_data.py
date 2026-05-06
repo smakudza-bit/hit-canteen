@@ -29,19 +29,19 @@ from canteen.utils import create_ticket, gen_tx_id
 
 DEMO_PASSWORD = 'Demo@1234'
 STUDENT_SEEDS = [
-    ('TINOTENDA GARANDE', 'H240107M'),
-    ('MacAlister Mutore', 'H240302T'),
-    ('Blessed Chisveto', 'H240230A'),
-    ('Anesu Chimiso', 'H240035Q'),
-    ('Trish Chipunza', 'H240261J'),
-    ('Vanessa Gota', 'H240383P'),
-    ('Tamuka Makudza', 'H240764A'),
-    ('Anesu Christine Bob', 'H240442A'),
+    ('Sample Student 001', 'HITDEMO001'),
+    ('Sample Student 002', 'HITDEMO002'),
+    ('Sample Student 003', 'HITDEMO003'),
+    ('Sample Student 004', 'HITDEMO004'),
+    ('Sample Student 005', 'HITDEMO005'),
+    ('Sample Student 006', 'HITDEMO006'),
+    ('Sample Student 007', 'HITDEMO007'),
+    ('Sample Student 008', 'HITDEMO008'),
 ]
 FRAUD_STUDENT_SEEDS = [
-    ('Tafadzwa Nyari', 'H240411F'),
-    ('Lerato Chuma', 'H240422K'),
-    ('Musa Dube', 'H240438R'),
+    ('Sample Student 009', 'HITDEMO009'),
+    ('Sample Student 010', 'HITDEMO010'),
+    ('Sample Student 011', 'HITDEMO011'),
 ]
 MEAL_SEEDS = [
     ('Sadza + Beef Stew', 'Traditional meal with beef stew', Decimal('2.50'), 420),
