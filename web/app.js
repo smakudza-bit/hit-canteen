@@ -12,7 +12,32 @@ function apiUrl(path) {
 
 let token = localStorage.getItem("hit_token") || "";
 let currentUserRole = localStorage.getItem("hit_role") || "";
-let cart = JSON.parse(localStorage.getItem("hit_cart") || "[]");
+function normalizeCartItems(rawItems) {
+  const items = Array.isArray(rawItems) ? rawItems : [];
+  const merged = new Map();
+  items.forEach((item) => {
+    const idValue = Number(item?.id || 0);
+    if (!idValue) return;
+    const qtyValue = Math.max(1, Number(item?.qty || 1));
+    const priceValue = Number(item?.price || 0);
+    const existing = merged.get(idValue);
+    if (existing) {
+      existing.qty += qtyValue;
+      if (!existing.name && item?.name) existing.name = String(item.name);
+      if (!existing.price && priceValue) existing.price = priceValue;
+      return;
+    }
+    merged.set(idValue, {
+      id: idValue,
+      name: String(item?.name || `Meal ${idValue}`),
+      price: priceValue,
+      qty: qtyValue,
+    });
+  });
+  return Array.from(merged.values());
+}
+
+let cart = normalizeCartItems(JSON.parse(localStorage.getItem("hit_cart") || "[]"));
 let latestTickets = [];
 let studentCheckoutSlots = [];
 let selectedStudentCheckoutMethod = "wallet";
@@ -721,6 +746,7 @@ function nextIdempotencyKey(prefix) {
 }
 
 function addToCart(meal) {
+  cart = normalizeCartItems(cart);
   const existing = cart.find((item) => item.id === meal.id);
   if (existing) existing.qty += 1;
   else cart.push({ ...meal, qty: 1 });
@@ -732,12 +758,14 @@ function addToCart(meal) {
 }
 
 function removeFromCart(index) {
+  cart = normalizeCartItems(cart);
   cart.splice(index, 1);
   persistCart();
   renderCart();
 }
 
 function renderCart() {
+  cart = normalizeCartItems(cart);
   const cartList = id("cart-list");
   const totalNode = id("cart-total");
   const chartNode = id("cart-chart");
@@ -1319,22 +1347,26 @@ async function loadWallet() {
 }
 
 async function loadMenuAndSlots() {
-  try {
-    const [meals, slots] = await Promise.all([
-      req("/api/v1/menu"),
-      req("/api/v1/pickup-slots").catch(() => []),
-    ]);
-    const safeMeals = meals.length ? meals : demoMeals;
-    renderMenu("menu-list", safeMeals);
-    renderStaffMeals(safeMeals);
-    populateWalkinMenu(safeMeals);
-    renderSlots(slots);
-  } catch {
-    if (page() === "student" || page() === "student-menu") renderDashboardMenuCards(demoMeals); else renderMenu("menu-list", demoMeals);
-    renderStaffMeals(demoMeals);
-    populateWalkinMenu(demoMeals);
-    renderSlots([]);
+  const [mealsResult, slotsResult] = await Promise.allSettled([
+    req("/api/v1/menu"),
+    req("/api/v1/pickup-slots"),
+  ]);
+
+  const meals = mealsResult.status === "fulfilled" && Array.isArray(mealsResult.value)
+    ? mealsResult.value
+    : demoMeals;
+  const slots = slotsResult.status === "fulfilled" && Array.isArray(slotsResult.value)
+    ? slotsResult.value
+    : [];
+
+  if (page() === "student" || page() === "student-menu") {
+    renderDashboardMenuCards(meals.length ? meals : demoMeals);
+  } else {
+    renderMenu("menu-list", meals.length ? meals : demoMeals);
   }
+  renderStaffMeals(meals.length ? meals : demoMeals);
+  populateWalkinMenu(meals.length ? meals : demoMeals);
+  renderSlots(slots);
 }
 
 function renderCollectionOrders(items) {
