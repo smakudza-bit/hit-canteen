@@ -1,3 +1,37 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Staff Transactions | HIT Canteen</title><link rel="stylesheet" href="/static/styles.css?v=20260506b" /></head><body class="hit-ui"><div class="hit-shell"><header class="hit-topbar"><div class="hit-topbar__brand"><div class="hit-logo-mark hit-logo-lockup"><span class="hit-logo-lockup__mark">HIT</span><span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span></div><div class="hit-topbar__meta"><h1>Transactions</h1><p>Search and review processed student payments</p></div></div><a class="hit-chip" href="/staff/">Back</a></header><main class="hit-main hit-stack"><section class="hit-card"><div class="hit-filter-bar"><input class="hit-search" placeholder="Search student or item" /><select class="hit-select"><option>All Statuses</option><option>Successful</option><option>Pending</option></select></div></section><section class="hit-card"><div class="hit-list"><div class="hit-transaction-item"><div class="hit-transaction-item__meta"><strong>Tamuka Makudza · Chicken and Rice Bowl</strong><span class="hit-muted">12:25 PM</span></div><strong>$3.50</strong></div><div class="hit-transaction-item"><div class="hit-transaction-item__meta"><strong>Rumbidzai Moyo · Cash Deposit</strong><span class="hit-muted">10:18 AM</span></div><strong>$5.00</strong></div></div></section></main></div></body></html>
+ï»¿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Collection List | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260507b" />
+</head>
+<body data-page="staff-collection" class="hit-ui">
+  <div class="hit-shell">
+    <header class="hit-topbar">
+      <div class="hit-topbar__brand">
+        <div class="hit-logo-mark hit-logo-lockup">
+          <span class="hit-logo-lockup__mark">HIT</span>
+          <span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span>
+        </div>
+        <div class="hit-topbar__meta">
+          <h1>Collection List</h1>
+          <p>Orders appear here only after staff scans a paid QR ticket.</p>
+        </div>
+      </div>
+      <a class="hit-chip" href="/staff-scanner/">Back to Scanner</a>
+    </header>
 
+    <main class="hit-main hit-stack">
+      <section class="hit-card">
+        <div id="staff-collection-list" class="hit-stack">
+          <p class="hint">Loading collection list...</p>
+        </div>
+        <p id="scan-status" class="status-msg"></p>
+      </section>
+    </main>
+  </div>
 
+  <script src="/static/app.js?v=20260507b"></script>
+</body>
+</html>

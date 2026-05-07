@@ -74,6 +74,7 @@ class OrderCreateSerializer(serializers.Serializer):
     meal_id = serializers.IntegerField(min_value=1, required=False)
     quantity = serializers.IntegerField(min_value=1, max_value=5, default=1)
     items = PaynowOrderItemSerializer(many=True, required=False)
+    slot_id = serializers.IntegerField(min_value=1, required=False)
 
     def validate(self, attrs):
         items = attrs.get('items') or []
@@ -87,6 +88,7 @@ class OrderCreateSerializer(serializers.Serializer):
 
 class PaynowOrderInitiateSerializer(serializers.Serializer):
     items = PaynowOrderItemSerializer(many=True)
+    slot_id = serializers.IntegerField(min_value=1, required=False)
     provider = serializers.ChoiceField(choices=['mobile_money', 'bank_card'])
     phone_number = serializers.CharField(required=False, allow_blank=True, max_length=32)
 
@@ -101,6 +103,10 @@ class PaynowOrderInitiateSerializer(serializers.Serializer):
 
 class ScanSerializer(serializers.Serializer):
     token = serializers.CharField()
+
+
+class CollectionOrderServeSerializer(serializers.Serializer):
+    collection_order_id = serializers.IntegerField(min_value=1, required=False)
 
 
 class NotificationEmailSerializer(serializers.Serializer):

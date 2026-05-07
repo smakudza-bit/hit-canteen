@@ -14,6 +14,8 @@ let token = localStorage.getItem("hit_token") || "";
 let currentUserRole = localStorage.getItem("hit_role") || "";
 let cart = JSON.parse(localStorage.getItem("hit_cart") || "[]");
 let latestTickets = [];
+let studentCheckoutSlots = [];
+let selectedStudentCheckoutMethod = "wallet";
 const AWAY_AUTO_LOGOUT_MS = 60 * 1000;
 let awayLogoutTimer = null;
 let awayLogoutTicker = null;
@@ -451,6 +453,12 @@ function bindLogout() {
 }
 function scannerResultState(errMessage) {
   const message = String(errMessage || "").toLowerCase();
+  if (message.includes("already served")) {
+    return { status: "used", title: "Ticket already served", message: errMessage || "This ticket has already been served." };
+  }
+  if (message.includes("already been scanned")) {
+    return { status: "used", title: "Ticket already scanned", message: errMessage || "This ticket has already been scanned." };
+  }
   if (message.includes("already redeemed") || message.includes("already used")) {
     return { status: "used", title: "Ticket already used", message: errMessage || "This ticket has already been redeemed." };
   }
@@ -558,31 +566,31 @@ async function validateTicketToken(tokenValue, statusTargetId = "scan-status") {
   }
   try {
     const result = await req("/api/v1/tickets/validate-scan", "POST", { token: cleanToken });
-    const collectionNumber = result.order_ref || result.order_id;
-    showStatus(statusTargetId, `Ticket valid. Collection No. ${collectionNumber} served.`);
+    const collection = result.collection_order || null;
+    const collectionNumber = collection?.order_number || result.order_ref || result.order_id;
+    showStatus(statusTargetId, result.detail || `Ticket scanned successfully. Order number: ${collectionNumber}.`);
     if (page() === "staff-scanner") {
       let details = {
-        'Collection No.': String(collectionNumber || ''),
-        Status: 'Verified',
-        Time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        'Order Number': String(collectionNumber || ''),
+        Status: collection?.served_at ? 'Served' : 'Scanned',
+        'Scan Time': collection?.scanned_at ? new Date(collection.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      try {
-        const order = await req(`/api/v1/orders/${result.order_id}`);
+      if (collection) {
         details = {
-          'Collection No.': order.order_ref || String(collectionNumber || ''),
-          'Student Name': order.student_name || `Student #${result.student_id || ''}`.trim(),
-          Meal: order.meal || 'Meal',
-          Quantity: String(order.quantity ?? 1),
-          Time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          Status: 'Verified',
+          'Order Number': collection.order_number || String(collectionNumber || ''),
+          'Student ID': collection.student_id || '',
+          'Student Name': collection.student_name || '',
+          'Meal Name': collection.meal_name || 'Meal',
+          'Meal Type': collection.meal_type || '',
+          Quantity: String(collection.quantity ?? 1),
+          'Scan Time': collection.scanned_at ? new Date(collection.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          Status: collection.served_at ? 'Served' : 'Waiting for service',
         };
-      } catch (_) {
-        // Keep minimal confirmation details if order lookup fails.
       }
-      renderScannerResult("valid", "Meal Verified", `Collection No. ${collectionNumber} has been marked as served.`, details);
+      renderScannerResult("valid", "Ticket Scanned", result.detail || `Order number ${collectionNumber} is now in the collection list.`, details);
       triggerScannerFeedback("success");
     }
-    await loadOrdersForStaff();
+    await loadCollectionOrders();
     await loadServedMeals();
     await loadFraudAlerts();
     await loadReconciliation();
@@ -845,9 +853,53 @@ function renderStaffMeals(meals) {
 }
 
 function renderSlots(slots) {
+  studentCheckoutSlots = Array.isArray(slots) ? slots : [];
+  const select = id("cart-slot-id");
+  const summary = id("cart-slot-summary");
   const node = id("slots-list");
-  if (!node) return;
-  node.innerHTML = "";
+  if (node) {
+    node.innerHTML = "";
+  }
+  if (!select) return;
+  if (!studentCheckoutSlots.length) {
+    select.innerHTML = '<option value="">No pickup slots available</option>';
+    select.disabled = true;
+    if (summary) summary.textContent = "No pickup slots are available right now.";
+    return;
+  }
+  const previousValue = select.value || select.dataset.selectedSlotId || "";
+  select.disabled = false;
+  select.innerHTML = `
+    <option value="">Select pickup slot</option>
+    ${studentCheckoutSlots.map((slot) => `
+      <option value="${slot.id}">
+        ${slot.label || `${slot.start_time} - ${slot.end_time}`} | ${Math.max(0, Number(slot.capacity || 0) - Number(slot.booked || 0))} space(s) left
+      </option>
+    `).join("")}
+  `;
+  if (previousValue && studentCheckoutSlots.some((slot) => String(slot.id) === String(previousValue))) {
+    select.value = String(previousValue);
+  }
+  updateSelectedPickupSummary();
+}
+
+function selectedCartSlotId() {
+  const raw = id("cart-slot-id")?.value || "";
+  return raw ? Number(raw) : 0;
+}
+
+function selectedCartSlot() {
+  const slotId = selectedCartSlotId();
+  return studentCheckoutSlots.find((slot) => Number(slot.id) === Number(slotId)) || null;
+}
+
+function updateSelectedPickupSummary() {
+  const summary = id("cart-slot-summary");
+  if (!summary) return;
+  const slot = selectedCartSlot();
+  summary.textContent = slot
+    ? `${slot.label || "Pickup"} | ${slot.start_time} - ${slot.end_time}`
+    : "Choose Lunch or Supper for collection.";
 }
 
 function renderTickets() {
@@ -1256,15 +1308,75 @@ async function loadWallet() {
 
 async function loadMenuAndSlots() {
   try {
-    const meals = await req("/api/v1/menu");
+    const [meals, slots] = await Promise.all([
+      req("/api/v1/menu"),
+      req("/api/v1/pickup-slots").catch(() => []),
+    ]);
     const safeMeals = meals.length ? meals : demoMeals;
     renderMenu("menu-list", safeMeals);
     renderStaffMeals(safeMeals);
     populateWalkinMenu(safeMeals);
+    renderSlots(slots);
   } catch {
     if (page() === "student" || page() === "student-menu") renderDashboardMenuCards(demoMeals); else renderMenu("menu-list", demoMeals);
     renderStaffMeals(demoMeals);
     populateWalkinMenu(demoMeals);
+    renderSlots([]);
+  }
+}
+
+function renderCollectionOrders(items) {
+  const containers = [id("collection-orders-list"), id("staff-collection-list")].filter(Boolean);
+  if (!containers.length) return;
+  const safeItems = Array.isArray(items) ? items : [];
+  const markup = !safeItems.length
+    ? '<p class="hint">No scanned orders are waiting right now.</p>'
+    : safeItems.map((item) => `
+      <article class="list-item hit-collection-order" data-collection-order-id="${item.id}">
+        <div class="hit-collection-order__meta">
+          <strong>${escapeHtml(item.order_number || "")}</strong>
+          <span>${escapeHtml(item.student_id || item.student_name || "")}</span>
+        </div>
+        <div class="hit-collection-order__details">
+          <div><strong>Meal:</strong> ${escapeHtml(item.meal_name || "")}</div>
+          <div><strong>Meal Type:</strong> ${escapeHtml(item.meal_type || "")}</div>
+          <div><strong>Quantity:</strong> ${escapeHtml(String(item.quantity ?? 1))}</div>
+          <div><strong>Scanned:</strong> ${item.scanned_at ? new Date(item.scanned_at).toLocaleString() : "-"}</div>
+        </div>
+        <button class="hit-btn" type="button" data-serve-collection-order="${item.id}">Mark as Served</button>
+      </article>
+    `).join("");
+  containers.forEach((node) => {
+    node.innerHTML = markup;
+  });
+  document.querySelectorAll("[data-serve-collection-order]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const targetId = Number(button.dataset.serveCollectionOrder || 0);
+      if (!targetId) return;
+      setButtonBusy(button, true, "Serving...");
+      try {
+        const result = await req(`/api/v1/collection-orders/${targetId}/serve`, "POST", {});
+        showStatus("scan-status", result.detail || "Order served.");
+        await loadCollectionOrders();
+        await loadServedMeals();
+      } catch (err) {
+        showStatus("scan-status", err.message || "Unable to mark this order as served.", false);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    });
+  });
+}
+
+async function loadCollectionOrders() {
+  try {
+    const items = await req("/api/v1/collection-orders/active");
+    renderCollectionOrders(items);
+  } catch (err) {
+    renderCollectionOrders([]);
+    if (page() === "staff-scanner" || page() === "staff-collection") {
+      showStatus("scan-status", err.message || "Unable to load the collection list.", false);
+    }
   }
 }
 
@@ -1330,6 +1442,13 @@ async function checkPendingPaynowOrderReturn() {
     return;
   }
 
+  if (payment.status === "cancelled") {
+    setPendingPaynowOrderTx("");
+    showStatus("order-status", "Payment was cancelled. Your cart is still here so you can try again.", false);
+    if (hasReturnFlag) window.history.replaceState({}, "", "/student/");
+    return;
+  }
+
   showStatus("order-status", "Your Paynow payment is still being processed. Refresh in a moment.");
 }
 
@@ -1369,6 +1488,16 @@ async function checkPendingPaynowTopupReturn() {
     showStatus("wallet-status", payment.meta_json?.gateway_error || "Paynow top-up was not completed.", false);
     if (id("wallet-modal-status")) {
       showStatus("wallet-modal-status", payment.meta_json?.gateway_error || "Paynow top-up was not completed.", false);
+    }
+    if (hasReturnFlag) window.history.replaceState({}, "", "/student/");
+    return;
+  }
+
+  if (payment.status === "cancelled") {
+    setPendingPaynowTopupTx("");
+    showStatus("wallet-status", "Paynow top-up was cancelled before completion.", false);
+    if (id("wallet-modal-status")) {
+      showStatus("wallet-modal-status", "Paynow top-up was cancelled before completion.", false);
     }
     if (hasReturnFlag) window.history.replaceState({}, "", "/student/");
     return;
@@ -1537,21 +1666,50 @@ function bindWalletModal() {
   });
 }
 
-async function placeOrdersFromCart() {
-  const walletButton = id("wallet-cart-btn");
+function setStudentCartPaymentMethod(method) {
+  const normalized = ["wallet", "mobile_money"].includes(method) ? method : "wallet";
+  selectedStudentCheckoutMethod = normalized;
+  document.querySelectorAll("[data-cart-payment-method]").forEach((button) => {
+    button.classList.toggle("selected", button.dataset.cartPaymentMethod === normalized);
+  });
+  const phoneField = id("cart-mobile-money-phone");
+  const note = id("cart-payment-note");
+  if (phoneField) {
+    phoneField.hidden = normalized !== "mobile_money";
+    phoneField.required = normalized === "mobile_money";
+    if (normalized !== "mobile_money") {
+      phoneField.value = "";
+    }
+  }
+  if (note) {
+    if (normalized === "wallet") {
+      note.textContent = "Your wallet balance will be charged immediately if it covers the total.";
+    } else {
+      note.textContent = "You will confirm the EcoCash request securely on your phone.";
+    }
+  }
+}
+
+async function placeOrdersFromCart(slotId) {
+  const walletButton = id("cart-pay-now-btn");
   if (!cart.length) {
     showStatus("order-status", "Add at least one meal to the cart.", false);
     return;
   }
+  if (!slotId) {
+    showStatus("order-status", "Select a pickup time before payment.", false);
+    return;
+  }
   const totalBefore = cartTotal();
   if (walletBalance() < totalBefore) {
-    showStatus("order-status", "Insufficient balance. Top up your wallet and try again.", false);
+    showStatus("order-status", "Insufficient balance. Please top up your wallet.", false);
     return;
   }
   try {
     setButtonBusy(walletButton, true, "Charging account...");
     const data = await req("/api/v1/orders", "POST", {
       items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
+      slot_id: slotId,
     }, { "Idempotency-Key": nextIdempotencyKey("wallet-order") });
     const createdOrders = Array.isArray(data.orders) ? data.orders : [data];
     const latestOrder = createdOrders[createdOrders.length - 1] || null;
@@ -1582,6 +1740,60 @@ async function placeOrdersFromCart() {
   } finally {
     setButtonBusy(walletButton, false);
   }
+}
+
+async function initiatePaynowCartPayment(slotId, provider) {
+  const payButton = id("cart-pay-now-btn");
+  if (!cart.length) {
+    showStatus("order-status", "Add at least one meal to the cart.", false);
+    return;
+  }
+  if (!slotId) {
+    showStatus("order-status", "Select a pickup time before payment.", false);
+    return;
+  }
+  const phoneNumber = (id("cart-mobile-money-phone")?.value || "").trim();
+  if (provider === "mobile_money" && !phoneNumber) {
+    showStatus("order-status", "Enter your EcoCash phone number to continue.", false);
+    return;
+  }
+  try {
+    setButtonBusy(payButton, true, "Starting payment...");
+    const data = await req("/api/v1/orders/paynow/initiate", "POST", {
+      items: cart.map((item) => ({ meal_id: item.id, quantity: item.qty })),
+      slot_id: slotId,
+      provider,
+      phone_number: phoneNumber,
+    }, { "Idempotency-Key": nextIdempotencyKey("paynow-order") });
+    setPendingPaynowOrderTx(data.payment_transaction_id || "");
+    showStatus("order-status", "Payment request sent. Confirm it on your EcoCash prompt.");
+    if (data.redirect_url && /^https?:/i.test(data.redirect_url)) {
+      window.location.href = data.redirect_url;
+      return;
+    }
+    showStatus("order-status", "Payment started. Refresh in a moment if the redirect does not open automatically.", false);
+  } catch (err) {
+    if (handleAuthErrorForPage(err, "student")) return;
+    showStatus("order-status", err.message || "Unable to start Paynow payment.", false);
+  } finally {
+    setButtonBusy(payButton, false);
+  }
+}
+
+function bindStudentCartPaymentMethods() {
+  document.querySelectorAll("[data-cart-payment-method]").forEach((button) => {
+    button.addEventListener("click", () => setStudentCartPaymentMethod(button.dataset.cartPaymentMethod || "wallet"));
+  });
+  setStudentCartPaymentMethod(selectedStudentCheckoutMethod);
+}
+
+async function handleStudentCartPayment() {
+  const slotId = selectedCartSlotId();
+  if (selectedStudentCheckoutMethod === "wallet") {
+    await placeOrdersFromCart(slotId);
+    return;
+  }
+  await initiatePaynowCartPayment(slotId, selectedStudentCheckoutMethod);
 }
 
 async function suspendAccount() {
@@ -1733,6 +1945,8 @@ function initStudentPage() {
 function initStaffScannerPage() {
   if (!guardPortalAccess('staff')) return;
   bindLogout();
+  loadCollectionOrders();
+  loadServedMeals();
   let scanner = null;
   let scannerActive = false;
   let scanLocked = false;
@@ -2322,7 +2536,14 @@ async function hydrateStudentCartPage() {
   bindLogout();
   renderCart();
   await loadWallet();
-  id('wallet-cart-btn')?.addEventListener('click', placeOrdersFromCart);
+  await loadMenuAndSlots();
+  await checkPendingPaynowOrderReturn();
+  id("cart-slot-id")?.addEventListener("change", updateSelectedPickupSummary);
+  bindStudentCartPaymentMethods();
+  id('cart-pay-now-btn')?.addEventListener('click', handleStudentCartPayment);
+  id('cart-view-qr-btn')?.addEventListener('click', () => {
+    window.location.href = "/student-qr/";
+  });
 }
 
 async function hydrateStudentTransactionsPage() {
@@ -2552,19 +2773,51 @@ async function hydrateStudentQrPage() {
     if (!latestTickets.length) {
       qrBox.innerHTML = '<div class="hit-empty-state">No active QR ticket yet. Complete an order and your QR will appear here.</div>';
       if (id('student-qr-meta')) id('student-qr-meta').textContent = 'No active ticket';
+      if (id('student-qr-status')) showStatus('student-qr-status', 'No active ticket found yet.', false);
       return;
     }
 
     const ticket = latestTickets[0];
+    const collection = ticket.collection_order || null;
+    if (collection) {
+      qrBox.innerHTML = `
+        <div class="hit-order-number-box">
+          <strong>${escapeHtml(collection.order_number || "")}</strong>
+          <span>${collection.served_at ? 'This meal has already been served.' : 'Please wait for your order number to be called.'}</span>
+        </div>
+      `;
+      if (id('student-qr-meta')) {
+        id('student-qr-meta').innerHTML = `
+          <strong>${escapeHtml(ticket.meal_name || "Meal")}</strong><br>
+          Meal Type: ${escapeHtml(ticket.meal_type || "")} | Quantity: ${escapeHtml(String(ticket.quantity ?? 1))}<br>
+          Payment: ${escapeHtml(ticket.payment_status || "successful")} | Scanned: ${collection.scanned_at ? new Date(collection.scanned_at).toLocaleString() : "-"}
+        `;
+      }
+      if (id('student-qr-status')) {
+        showStatus('student-qr-status', collection.served_at
+          ? `Your order ${collection.order_number} has already been served.`
+          : `Your ticket has been scanned. Your order number is ${collection.order_number}. Please wait for your number to be called.`);
+      }
+      return;
+    }
     qrBox.innerHTML = `<div class="ticket-card__qr hit-qr-live">${ticket.ticket_qr_svg || ticket.qr_svg || '<div class="hit-empty-state">QR unavailable for this ticket.</div>'}</div>`;
     if (id('student-qr-meta')) {
       const expiresText = ticket.expires_at ? `Valid until ${new Date(ticket.expires_at).toLocaleString()}` : 'Ticket issued';
-      id('student-qr-meta').textContent = `${ticket.order_ref || ticket.ticket_id} | ${expiresText}`;
+      id('student-qr-meta').textContent = `${ticket.order_ref || ticket.ticket_id} | ${ticket.meal_name || "Meal"} | ${expiresText}`;
+    }
+    if (id('student-qr-status')) {
+      showStatus('student-qr-status', 'Show this QR code to staff at the collection point.');
     }
   };
 
   id('student-qr-refresh')?.addEventListener('click', renderCurrentTicket);
   await renderCurrentTicket();
+}
+
+async function hydrateStaffCollectionPage() {
+  if (!guardPortalAccess('staff')) return;
+  bindLogout();
+  await loadCollectionOrders();
 }
 
 function renderAdminTableRows(targetId, rows, columns, emptyMessage = 'No records available.') {
@@ -3384,6 +3637,7 @@ function initExtendedRolePages() {
   if (page() === 'student-add-money') return hydrateStudentAddMoneyPage();
   if (page() === 'student-pay-scanner') return initStudentPayScannerPage();
   if (page() === 'student-qr') return hydrateStudentQrPage();
+  if (page() === 'staff-collection') return hydrateStaffCollectionPage();
   if (page() === 'admin-login') return initAdminLoginPage();
   if (page() === 'admin-dashboard') { if (!ensureAdminPortalPage()) return; return hydrateAdminDashboard(); }
   if (page() === 'admin-students') { if (!ensureAdminPortalPage()) return; return hydrateAdminStudents(); }

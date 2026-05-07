@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Scan Student QR | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260507b" />
 </head>
 <body data-page="staff-scanner" class="hit-ui hit-scanner-shell">
   <main class="hit-main hit-stack hit-mobile-scanner">
     <div class="hit-page-head hit-page-head--scanner">
-      <h1>Meal Scanner</h1>
-      <p>Scan student QR code</p>
+        <h1>Meal Scanner</h1>
+        <p>Scan a paid ticket, assign an order number, then serve it from the collection list.</p>
     </div>
 
     <section class="staff-scanner-card">
@@ -34,7 +34,7 @@
         </div>
         <span class="scanner-result-badge pending">Waiting</span>
         <h3 id="scanner-result-title">Ready to scan</h3>
-        <p id="scanner-result-message">Scan a student QR code to verify a meal quickly.</p>
+        <p id="scanner-result-message">Scan a student QR code to add the meal to the collection list.</p>
         <div id="scanner-result-details" class="scanner-result-details" hidden></div>
       </div>
 
@@ -45,13 +45,23 @@
       <button id="scanner-manual-validate-btn" class="hit-btn" type="button" style="margin-top:16px;">Validate Token</button>
     </section>
 
+    <section class="hit-card">
+      <div class="hit-page-head" style="margin-bottom:16px;">
+        <h2 style="margin:0;">Active Collection List</h2>
+        <p class="hit-muted">Scanned tickets wait here until the meal has been served.</p>
+      </div>
+      <div id="collection-orders-list" class="hit-stack">
+        <p class="hint">Loading collection list...</p>
+      </div>
+    </section>
+
     <section class="staff-scanner-actions">
       <a class="hit-btn-secondary hit-btn-lg" href="/staff/">Add Meal</a>
       <a class="hit-btn-secondary hit-btn-lg" href="/staff/">Top Up Wallet</a>
-      <a class="hit-btn-secondary hit-btn-lg" href="/staff-transactions/">View Orders</a>
+      <a class="hit-btn-secondary hit-btn-lg" href="/staff-transactions/">Collection Page</a>
     </section>
   </main>
   <script src="https://unpkg.com/html5-qrcode" defer></script>
-  <script src="/static/app.js?v=20260414a"></script>
+  <script src="/static/app.js?v=20260507b"></script>
 </body>
 </html>

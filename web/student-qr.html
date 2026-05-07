@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My QR | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260506b" />
+  <title>My Meal Ticket | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260507b" />
 </head>
 <body data-page="student-qr" class="hit-ui">
   <div class="hit-shell">
@@ -15,8 +15,8 @@
           <span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span>
         </div>
         <div class="hit-topbar__meta">
-          <h1>My Payment QR</h1>
-          <p>Present this code to staff for payment verification.</p>
+          <h1>My Meal Ticket</h1>
+          <p>Show your QR code at collection. After staff scans it, wait for your order number to be called.</p>
         </div>
       </div>
       <a class="hit-chip" href="/student/">Back</a>
@@ -29,76 +29,14 @@
         </div>
         <div>
           <h2 id="student-qr-name" style="margin:0;">Student</h2>
-          <p id="student-qr-meta" class="hit-muted">Student ID</p>
+          <p id="student-qr-meta" class="hit-muted">Ticket information will appear here.</p>
         </div>
-        <button id="student-qr-refresh" class="hit-btn-secondary" type="button">Refresh Code</button>
+        <button id="student-qr-refresh" class="hit-btn-secondary" type="button">Refresh Ticket</button>
         <p id="student-qr-status" class="status-msg"></p>
       </section>
     </main>
   </div>
 
-  <script src="/static/app.js?v=20260414a"></script>
-  <script>
-    (function () {
-      const token = localStorage.getItem('hit_token') || '';
-      const qrBox = document.getElementById('student-qr-box');
-      const qrName = document.getElementById('student-qr-name');
-      const qrMeta = document.getElementById('student-qr-meta');
-      const qrStatus = document.getElementById('student-qr-status');
-      const refreshBtn = document.getElementById('student-qr-refresh');
-
-      const setStatus = (message, ok = true) => {
-        if (!qrStatus) return;
-        qrStatus.textContent = message;
-        qrStatus.className = ok ? 'status-msg success' : 'status-msg error';
-      };
-
-      const authHeaders = () => token ? { Authorization: `Bearer ${token}` } : {};
-
-      const loadQr = async () => {
-        if (!token) {
-          window.location.replace('/student-login/');
-          return;
-        }
-        try {
-          setStatus('Loading your QR ticket...');
-          const [profileRes, ticketRes] = await Promise.all([
-            fetch('/api/v1/auth/me', { headers: authHeaders() }),
-            fetch('/api/v1/tickets/mine', { headers: authHeaders() }),
-          ]);
-
-          if (!profileRes.ok || !ticketRes.ok) {
-            throw new Error('Unable to load your QR ticket right now.');
-          }
-
-          const profile = await profileRes.json();
-          const tickets = await ticketRes.json();
-
-          if (qrName) qrName.textContent = profile.full_name || 'Student';
-
-          if (!Array.isArray(tickets) || !tickets.length) {
-            qrBox.innerHTML = '<div class="hit-empty-state">No active QR ticket yet. Complete an order and your QR will appear here.</div>';
-            if (qrMeta) qrMeta.textContent = profile.student_id || 'No active ticket';
-            setStatus('No QR ticket found yet.', false);
-            return;
-          }
-
-          const ticket = tickets[0];
-          qrBox.innerHTML = `<div class="ticket-card__qr hit-qr-live">${ticket.qr_svg || ticket.ticket_qr_svg || '<div class="hit-empty-state">QR unavailable for this ticket.</div>'}</div>`;
-          if (qrMeta) {
-            const expiresText = ticket.expires_at ? `Valid until ${new Date(ticket.expires_at).toLocaleString()}` : 'Ticket issued';
-            qrMeta.textContent = `Collection No. ${ticket.order_ref || ticket.ticket_id} | ${expiresText}`;
-          }
-          setStatus('QR ticket loaded successfully.');
-        } catch (error) {
-          qrBox.innerHTML = '<div class="hit-empty-state">Unable to display the QR ticket right now.</div>';
-          setStatus(error.message || 'Unable to load your QR ticket.', false);
-        }
-      };
-
-      refreshBtn?.addEventListener('click', loadQr);
-      window.addEventListener('load', loadQr);
-    }());
-  </script>
+  <script src="/static/app.js?v=20260507b"></script>
 </body>
 </html>

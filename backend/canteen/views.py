@@ -25,8 +25,8 @@ from django.contrib.auth import authenticate
 DEMO_PASSWORD = 'Demo@1234'
 DEMO_EMAILS = {'student@hit.ac.zw', 'staff@hit.ac.zw', 'admin@hit.ac.zw'}
 
-from .models import AdminSetting, AuditLog, CashDeposit, DailyReconciliationReport, FraudAlert, Meal, MealTicket, NotificationLog, Order, PaymentTransaction, PickupSlot, User, Wallet, WalletLedgerEntry
-from .serializers import AdminSettingsSerializer, LoginSerializer, NotificationEmailSerializer, OrderCreateSerializer, PasswordChangeSerializer, PaynowOrderInitiateSerializer, PaymentWebhookSerializer, ProfileUpdateSerializer, RegisterSerializer, ScanSerializer, TopUpInitiateSerializer
+from .models import AdminSetting, AuditLog, CashDeposit, CollectionOrder, DailyReconciliationReport, FraudAlert, Meal, MealTicket, NotificationLog, Order, PaymentTransaction, PickupSlot, User, Wallet, WalletLedgerEntry
+from .serializers import AdminSettingsSerializer, CollectionOrderServeSerializer, LoginSerializer, NotificationEmailSerializer, OrderCreateSerializer, PasswordChangeSerializer, PaynowOrderInitiateSerializer, PaymentWebhookSerializer, ProfileUpdateSerializer, RegisterSerializer, ScanSerializer, TopUpInitiateSerializer
 from .tokens import email_verification_token
 from .utils import PAYNOW_FAILURE_STATUSES, PAYNOW_SUCCESS_STATUSES, add_audit, add_fraud_alert, cache_idempotency_response, create_ticket, demand_forecast_for_date, estimated_wait_minutes, gen_tx_id, get_cached_idempotency, notify_work_email, parse_paynow_message, paynow_error_message, paynow_initiate, paynow_poll_status, paynow_validate_hash, send_notification_email, slot_booked_qty, verify_ticket_payload, verify_webhook_signature, wallet_balance
 
@@ -228,11 +228,7 @@ def _ensure_seed_data():
             Meal(name='Mazoe Orange', description='Fruit drink', price=Decimal('1.10')),
             Meal(name='Water 500ml', description='Still water', price=Decimal('0.80')),
         ])
-    if not PickupSlot.objects.filter(slot_date=date.today()).exists():
-        PickupSlot.objects.bulk_create([
-            PickupSlot(slot_date=date.today(), start_time=time(13, 0), end_time=time(13, 30), capacity=100),
-            PickupSlot(slot_date=date.today(), start_time=time(17, 0), end_time=time(17, 30), capacity=100),
-        ])
+    _ensure_student_pickup_slots()
     for seed in [
         {'email': 'admin@hit.ac.zw', 'password': DEMO_PASSWORD, 'university_id': 'HITADMIN001', 'full_name': 'System Admin', 'role': 'admin', 'is_staff': True},
         {'email': 'staff@hit.ac.zw', 'password': DEMO_PASSWORD, 'university_id': 'HITSTAFF001', 'full_name': 'Canteen Staff', 'role': 'staff', 'is_staff': True},
@@ -241,18 +237,92 @@ def _ensure_seed_data():
         _ensure_demo_user(**seed)
 
 
+def _student_pickup_slot_definitions():
+    return [
+        {'label': 'Lunch', 'start_time': time(13, 0), 'end_time': time(13, 30), 'capacity': 100},
+        {'label': 'Supper', 'start_time': time(17, 0), 'end_time': time(17, 30), 'capacity': 100},
+    ]
+
+
+def _ensure_student_pickup_slots(target_date=None):
+    slot_date = target_date or timezone.localdate()
+    ensured_slots = []
+    for definition in _student_pickup_slot_definitions():
+        slot, _created = PickupSlot.objects.get_or_create(
+            slot_date=slot_date,
+            start_time=definition['start_time'],
+            end_time=definition['end_time'],
+            defaults={'capacity': definition['capacity']},
+        )
+        if slot.capacity != definition['capacity']:
+            slot.capacity = definition['capacity']
+            slot.save(update_fields=['capacity'])
+        setattr(slot, 'student_label', definition['label'])
+        ensured_slots.append(slot)
+    return ensured_slots
+
+
 def _get_service_slot():
     _ensure_seed_data()
-    current_date = timezone.localdate()
-    slot = PickupSlot.objects.filter(slot_date__gte=current_date).order_by('slot_date', 'start_time').first()
-    if slot:
-        return slot
-    return PickupSlot.objects.create(
-        slot_date=current_date,
-        start_time=time(13, 0),
-        end_time=time(13, 30),
-        capacity=1000,
+    return _ensure_student_pickup_slots()[0]
+
+
+def _resolve_selected_slot(slot_id):
+    _ensure_seed_data()
+    if not slot_id:
+        raise ValueError('Select a pickup slot before payment.')
+    try:
+        slot = PickupSlot.objects.get(id=slot_id)
+    except PickupSlot.DoesNotExist as err:
+        raise ValueError('The selected pickup slot is no longer available.') from err
+    if slot.slot_date < timezone.localdate():
+        raise ValueError('The selected pickup slot has already passed.')
+    if slot_booked_qty(slot) >= slot.capacity:
+        raise ValueError('The selected pickup slot is fully booked. Please choose another one.')
+    return slot
+
+
+def _meal_type_for_slot(slot):
+    if slot.start_time.hour < 15:
+        return 'Lunch'
+    return 'Supper'
+
+
+def _build_collection_order_payload(collection_order):
+    return {
+        'id': collection_order.id,
+        'order_number': collection_order.order_number,
+        'ticket_id': collection_order.ticket.ticket_id,
+        'order_id': collection_order.order.id,
+        'order_ref': collection_order.order.order_ref,
+        'student_name': collection_order.student.full_name,
+        'student_id': collection_order.student.university_id,
+        'meal_name': collection_order.meal_name,
+        'meal_type': collection_order.meal_type,
+        'quantity': collection_order.quantity,
+        'price_paid': float(collection_order.price_paid),
+        'special_notes': collection_order.special_notes,
+        'payment_status': 'successful',
+        'scanned_at': collection_order.scanned_at.isoformat() if collection_order.scanned_at else None,
+        'served_at': collection_order.served_at.isoformat() if collection_order.served_at else None,
+    }
+
+
+def _next_collection_order_number(slot):
+    service_date = timezone.localdate()
+    last_collection = (
+        CollectionOrder.objects.select_for_update()
+        .filter(service_date=service_date)
+        .order_by('-id')
+        .first()
     )
+    next_seq = 1
+    if last_collection and last_collection.order_number.startswith('#'):
+        try:
+            next_seq = int(last_collection.order_number[1:]) + 1
+        except ValueError:
+            next_seq = CollectionOrder.objects.filter(service_date=service_date).count() + 1
+    return f'#{next_seq:03d}'
 
 
 def _apply_successful_topup(tx, provider_ref, provider_note, verified=True):
@@ -276,6 +346,10 @@ def _apply_successful_topup(tx, provider_ref, provider_note, verified=True):
 
 
 def _ticket_payload(order, ticket):
+    try:
+        collection_order = ticket.collectionorder
+    except CollectionOrder.DoesNotExist:
+        collection_order = None
     return {
         'order_id': order.id,
         'order_ref': order.order_ref,
@@ -284,6 +358,12 @@ def _ticket_payload(order, ticket):
         'ticket_token': ticket.token,
         'ticket_qr_svg': ticket.qr_svg,
         'expires_at': ticket.expires_at.isoformat(),
+        'meal_name': order.meal.name,
+        'meal_type': _meal_type_for_slot(order.slot),
+        'quantity': order.quantity,
+        'payment_status': 'successful',
+        'scan_time': collection_order.scanned_at.isoformat() if collection_order and collection_order.scanned_at else None,
+        'collection_order': _build_collection_order_payload(collection_order) if collection_order else None,
     }
 
 
@@ -323,7 +403,11 @@ def _apply_successful_order_payment(tx, provider_ref, verified=True):
         return
 
     items = meta.get('items') or []
-    slot = _get_service_slot()
+    requested_slot_id = meta.get('service_slot_id')
+    try:
+        slot = _resolve_selected_slot(requested_slot_id) if requested_slot_id else _get_service_slot()
+    except ValueError:
+        slot = _get_service_slot()
     if not items:
         _apply_successful_topup(tx, provider_ref, 'Paynow payment settled as wallet credit because the order payload was incomplete.', verified=verified)
         meta['wallet_credited'] = True
@@ -397,7 +481,7 @@ def _refresh_pending_paynow_transaction(tx):
             _apply_successful_topup(tx, provider_ref, 'Paynow confirmed top-up', verified=True)
         tx.refresh_from_db()
     elif status_text in PAYNOW_FAILURE_STATUSES:
-        tx.status = 'failed'
+        tx.status = 'cancelled' if status_text == 'cancelled' else 'failed'
         tx.callback_verified = True
         tx.provider_ref = (provider_ref or '')[:128] or tx.provider_ref
         tx.updated_at = timezone.now()
@@ -836,6 +920,9 @@ def topup_initiate(request):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
+    role_error = _require_role(request, 'student')
+    if role_error:
+        return role_error
     serializer = TopUpInitiateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     idem_key = request.headers.get('Idempotency-Key')
@@ -965,7 +1052,7 @@ def paynow_result(request):
         else:
             _apply_successful_topup(tx, provider_ref, 'Paynow confirmed top-up', verified=True)
     elif status_text in PAYNOW_FAILURE_STATUSES:
-        tx.status = 'failed'
+        tx.status = 'cancelled' if status_text == 'cancelled' else 'failed'
         tx.callback_verified = True
         tx.provider_ref = (provider_ref or '')[:128] or tx.provider_ref
         tx.updated_at = timezone.now()
@@ -1078,10 +1165,11 @@ def pickup_slots(request):
     if suspension:
         return suspension
     _ensure_seed_data()
-    slots = PickupSlot.objects.filter(slot_date__gte=date.today()).order_by('slot_date', 'start_time')[:12]
+    slots = _ensure_student_pickup_slots()
     return Response([
         {
             'id': slot.id,
+            'label': getattr(slot, 'student_label', slot.start_time.strftime('%H:%M')),
             'slot_date': slot.slot_date.isoformat(),
             'start_time': slot.start_time.strftime('%H:%M'),
             'end_time': slot.end_time.strftime('%H:%M'),
@@ -1118,6 +1206,9 @@ def create_order(request):
             }
             for order in orders
         ])
+    role_error = _require_role(request, 'student')
+    if role_error:
+        return role_error
     serializer = OrderCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     idem_key = request.headers.get('Idempotency-Key')
@@ -1125,7 +1216,11 @@ def create_order(request):
         cached = get_cached_idempotency(request.user, 'orders', idem_key)
         if cached:
             return Response(cached.response_body, status=cached.status_code)
-    slot = _get_service_slot()
+    slot_id = serializer.validated_data.get('slot_id')
+    try:
+        slot = _resolve_selected_slot(slot_id)
+    except ValueError as err:
+        return Response({'detail': str(err)}, status=status.HTTP_400_BAD_REQUEST)
     items = serializer.validated_data.get('items') or []
     if not items:
         items = [{
@@ -1150,6 +1245,7 @@ def create_order(request):
         return Response({'detail': 'Insufficient wallet balance'}, status=status.HTTP_400_BAD_REQUEST)
     created_orders = []
     with transaction.atomic():
+        slot = PickupSlot.objects.select_for_update().get(id=slot.id)
         meals = {entry['meal'].id: Meal.objects.select_for_update().get(id=entry['meal'].id) for entry in normalized_items}
         for entry in normalized_items:
             meal = meals[entry['meal'].id]
@@ -1161,11 +1257,39 @@ def create_order(request):
             quantity = entry['quantity']
             order, ticket = _create_paid_order_ticket(request.user, meal, slot, quantity)
             created_orders.append(_ticket_payload(order, ticket))
+        payment_tx = PaymentTransaction.objects.create(
+            tx_id=gen_tx_id('WALPAY'),
+            user=request.user,
+            wallet=wallet,
+            provider='wallet',
+            amount=total_amount,
+            status='succeeded',
+            purpose='order_payment',
+            callback_verified=True,
+            meta_json={
+                'items': [
+                    {'meal_id': entry['meal'].id, 'quantity': entry['quantity'], 'meal_name': entry['meal'].name}
+                    for entry in normalized_items
+                ],
+                'payment_method': 'wallet',
+                'service_slot_id': slot.id,
+                'service_slot_label': f"{slot.slot_date.isoformat()} {slot.start_time.strftime('%H:%M')} - {slot.end_time.strftime('%H:%M')}",
+                'fulfilled': True,
+                'created_orders': created_orders,
+            },
+        )
         WalletLedgerEntry.objects.create(wallet=wallet, tx_id=gen_tx_id('DEBIT'), entry_type='debit', amount=total_amount, provider='wallet', note=f'Order payment batch ({len(created_orders)} item(s))')
     updated_wallet_balance = float(wallet_balance(wallet))
     payload = created_orders[0] if len(created_orders) == 1 else {'orders': created_orders}
     payload['detail'] = f'Wallet payment successful for {len(created_orders)} item(s).'
     payload['wallet_balance_after'] = updated_wallet_balance
+    payload['payment_transaction_id'] = payment_tx.tx_id
+    payload['pickup_slot'] = {
+        'id': slot.id,
+        'slot_date': slot.slot_date.isoformat(),
+        'start_time': slot.start_time.strftime('%H:%M'),
+        'end_time': slot.end_time.strftime('%H:%M'),
+    }
     _flag_rapid_ordering(request.user, request)
     add_audit(request.user, 'create_order', 'order', created_orders[0]['order_id'], _client_context(request))
     _safe_send_user_email(
@@ -1185,6 +1309,9 @@ def initiate_paynow_order_payment(request):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
+    role_error = _require_role(request, 'student')
+    if role_error:
+        return role_error
     serializer = PaynowOrderInitiateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     items = serializer.validated_data['items']
@@ -1196,7 +1323,11 @@ def initiate_paynow_order_payment(request):
         if cached:
             return Response(cached.response_body, status=cached.status_code)
 
-    slot = _get_service_slot()
+    slot_id = serializer.validated_data.get('slot_id')
+    try:
+        slot = _resolve_selected_slot(slot_id)
+    except ValueError as err:
+        return Response({'detail': str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
     meal_ids = [item['meal_id'] for item in items]
     meals = {meal.id: meal for meal in Meal.objects.filter(id__in=meal_ids, active=True)}
@@ -1225,6 +1356,7 @@ def initiate_paynow_order_payment(request):
             'payment_method': serializer.validated_data['provider'],
             'phone_number_masked': _masked_phone(serializer.validated_data.get('phone_number')),
             'service_slot_id': slot.id,
+            'service_slot_label': f"{slot.slot_date.isoformat()} {slot.start_time.strftime('%H:%M')} - {slot.end_time.strftime('%H:%M')}",
         },
     )
     try:
@@ -1267,6 +1399,12 @@ def initiate_paynow_order_payment(request):
         'total_amount': float(total_amount),
         'redirect_url': result.get('browserurl') or result.get('pollurl'),
         'poll_url': result.get('pollurl'),
+        'pickup_slot': {
+            'id': slot.id,
+            'slot_date': slot.slot_date.isoformat(),
+            'start_time': slot.start_time.strftime('%H:%M'),
+            'end_time': slot.end_time.strftime('%H:%M'),
+        },
     }
     add_audit(request.user, 'paynow_order_initiated', 'payment_transaction', tx.tx_id, _client_context(request))
     if idem_key:
@@ -1302,12 +1440,30 @@ def order_detail(request, order_id):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    order = Order.objects.select_related('meal', 'user').filter(id=order_id).first()
+    order = Order.objects.select_related('meal', 'user', 'slot').filter(id=order_id).first()
     if not order:
         return Response({'detail': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
     if request.user.role == 'student' and order.user_id != request.user.id:
         return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
-    return Response({'order_id': order.id, 'order_ref': order.order_ref, 'meal': order.meal.name, 'quantity': order.quantity, 'total_amount': float(order.total_amount), 'status': order.status, 'student_name': order.user.full_name})
+    collection_order = CollectionOrder.objects.select_related('ticket').filter(order=order).first()
+    return Response({
+        'order_id': order.id,
+        'order_ref': order.order_ref,
+        'meal': order.meal.name,
+        'meal_type': _meal_type_for_slot(order.slot),
+        'quantity': order.quantity,
+        'total_amount': float(order.total_amount),
+        'status': order.status,
+        'student_name': order.user.full_name,
+        'student_id': order.user.university_id,
+        'payment_status': 'successful',
+        'pickup_slot': {
+            'slot_date': order.slot.slot_date.isoformat(),
+            'start_time': order.slot.start_time.strftime('%H:%M'),
+            'end_time': order.slot.end_time.strftime('%H:%M'),
+        },
+        'collection_order': _build_collection_order_payload(collection_order) if collection_order else None,
+    })
 
 
 @api_view(['GET'])
@@ -1316,12 +1472,12 @@ def ticket_by_order(request, order_id):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    ticket = MealTicket.objects.select_related('order__user').filter(order_id=order_id).first()
+    ticket = MealTicket.objects.select_related('order__user', 'order__meal', 'order__slot').filter(order_id=order_id).first()
     if not ticket:
         return Response({'detail': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
     if request.user.role == 'student' and ticket.order.user_id != request.user.id:
         return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
-    return Response({'ticket_id': ticket.ticket_id, 'token': ticket.token, 'qr_svg': ticket.qr_svg, 'status': ticket.status, 'expires_at': ticket.expires_at.isoformat()})
+    return Response(_ticket_payload(ticket.order, ticket))
 
 
 @api_view(['GET'])
@@ -1330,18 +1486,12 @@ def my_tickets(request):
     suspension = _ensure_not_suspended(request.user)
     if suspension:
         return suspension
-    tickets = MealTicket.objects.select_related('order').filter(order__user=request.user).order_by('-order__created_at')[:12]
-    return Response([
-        {
-            'ticket_id': ticket.ticket_id,
-            'token': ticket.token,
-            'qr_svg': ticket.qr_svg,
-            'status': ticket.status,
-            'expires_at': ticket.expires_at.isoformat(),
-            'order_ref': ticket.order.order_ref,
-        }
-        for ticket in tickets
-    ])
+    tickets = (
+        MealTicket.objects.select_related('order__meal', 'order__slot')
+        .filter(order__user=request.user)
+        .order_by('-order__created_at')[:12]
+    )
+    return Response([_ticket_payload(ticket.order, ticket) for ticket in tickets])
 
 
 @api_view(['POST'])
@@ -1361,29 +1511,139 @@ def validate_scan(request):
         _flag_repeated_failed_scans(request)
         return Response({'detail': 'Invalid ticket token'}, status=status.HTTP_400_BAD_REQUEST)
     data = json.loads(payload)
-    ticket = MealTicket.objects.select_related('order').filter(order_id=data.get('order_id'), token=serializer.validated_data['token']).first()
+    ticket = MealTicket.objects.select_related('order__meal', 'order__slot', 'order__user').filter(order_id=data.get('order_id'), token=serializer.validated_data['token']).first()
     if not ticket:
         add_fraud_alert('missing_ticket_record', 'high', f"order_id={data.get('order_id')}, scanner={request.user.email}, {_client_context(request)}")
         _flag_repeated_failed_scans(request)
         return Response({'detail': 'Ticket record not found'}, status=status.HTTP_404_NOT_FOUND)
-    if ticket.status == 'redeemed':
+    existing_collection = CollectionOrder.objects.select_related('ticket', 'order', 'student').filter(ticket=ticket).first()
+    if ticket.status == 'redeemed' or ticket.order.status == 'served':
         add_fraud_alert('duplicate_ticket_scan', 'high', f"ticket={ticket.ticket_id}, scanner={request.user.email}, {_client_context(request)}")
         _flag_repeated_failed_scans(request)
-        return Response({'detail': 'Ticket already redeemed'}, status=status.HTTP_400_BAD_REQUEST)
+        detail = 'Ticket already served.'
+        if existing_collection:
+            detail = f"Ticket already served. Order number: {existing_collection.order_number}."
+        return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+    if ticket.status == 'scanned' and existing_collection:
+        add_fraud_alert('duplicate_ticket_scan', 'medium', f"ticket={ticket.ticket_id}, scanner={request.user.email}, {_client_context(request)}")
+        _flag_repeated_failed_scans(request)
+        return Response({
+            'detail': f'This ticket has already been scanned. Order number: {existing_collection.order_number}.',
+            'collection_order': _build_collection_order_payload(existing_collection),
+            'order_id': ticket.order.id,
+            'order_ref': ticket.order.order_ref,
+            'student_id': ticket.order.user.university_id,
+        }, status=status.HTTP_200_OK)
     if ticket.expires_at <= timezone.now():
         ticket.status = 'expired'
         ticket.save(update_fields=['status'])
         add_fraud_alert('expired_ticket_scan', 'medium', f"ticket={ticket.ticket_id}, scanner={request.user.email}, {_client_context(request)}")
         _flag_repeated_failed_scans(request)
         return Response({'detail': 'Ticket expired'}, status=status.HTTP_400_BAD_REQUEST)
+    if ticket.order.status != 'paid':
+        return Response({'detail': 'Only paid tickets can be scanned.'}, status=status.HTTP_400_BAD_REQUEST)
     with transaction.atomic():
-        ticket.status = 'redeemed'
-        ticket.redeemed_at = timezone.now()
-        ticket.save(update_fields=['status', 'redeemed_at'])
-        ticket.order.status = 'served'
-        ticket.order.save(update_fields=['status'])
-    add_audit(request.user, 'scan_ticket', 'ticket', ticket.ticket_id, f"served order={ticket.order_id}, {_client_context(request)}")
-    return Response({'detail': 'Ticket valid and redeemed.', 'order_id': ticket.order.id, 'order_ref': ticket.order.order_ref, 'student_id': ticket.order.user_id})
+        ticket = MealTicket.objects.select_for_update().select_related('order__meal', 'order__slot', 'order__user').get(id=ticket.id)
+        collection_order = CollectionOrder.objects.select_related('ticket', 'order', 'student').filter(ticket=ticket).first()
+        if collection_order:
+            return Response({
+                'detail': f'This ticket has already been scanned. Order number: {collection_order.order_number}.',
+                'collection_order': _build_collection_order_payload(collection_order),
+                'order_id': ticket.order.id,
+                'order_ref': ticket.order.order_ref,
+                'student_id': ticket.order.user.university_id,
+            }, status=status.HTTP_200_OK)
+        order_number = _next_collection_order_number(ticket.order.slot)
+        scanned_at = timezone.now()
+        collection_order = CollectionOrder.objects.create(
+            order_number=order_number,
+            service_date=timezone.localdate(),
+            ticket=ticket,
+            order=ticket.order,
+            student=ticket.order.user,
+            meal_name=ticket.order.meal.name,
+            meal_type=_meal_type_for_slot(ticket.order.slot),
+            quantity=ticket.order.quantity,
+            price_paid=ticket.order.total_amount,
+            scanned_by=request.user,
+            scanned_at=scanned_at,
+        )
+        ticket.status = 'scanned'
+        ticket.save(update_fields=['status'])
+    add_audit(request.user, 'scan_ticket', 'collection_order', str(collection_order.id), f"ticket={ticket.ticket_id}, order_number={collection_order.order_number}, {_client_context(request)}")
+    return Response({
+        'detail': f'Ticket scanned successfully. Order number: {collection_order.order_number}.',
+        'order_id': ticket.order.id,
+        'order_ref': ticket.order.order_ref,
+        'student_id': ticket.order.user.university_id,
+        'collection_order': _build_collection_order_payload(collection_order),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def collection_orders_active(request):
+    suspension = _ensure_not_suspended(request.user)
+    if suspension:
+        return suspension
+    role_error = _require_role(request, 'staff', 'admin')
+    if role_error:
+        return role_error
+    items = (
+        CollectionOrder.objects.select_related('ticket', 'order', 'student')
+        .filter(served_at__isnull=True)
+        .order_by('scanned_at')
+    )
+    return Response([_build_collection_order_payload(item) for item in items])
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def collection_order_mark_served(request, collection_order_id):
+    suspension = _ensure_not_suspended(request.user)
+    if suspension:
+        return suspension
+    role_error = _require_role(request, 'staff', 'admin')
+    if role_error:
+        return role_error
+    serializer = CollectionOrderServeSerializer(data={'collection_order_id': collection_order_id})
+    serializer.is_valid(raise_exception=True)
+    with transaction.atomic():
+        collection_order = (
+            CollectionOrder.objects.select_for_update()
+            .select_related('ticket', 'order', 'student')
+            .filter(id=collection_order_id)
+            .first()
+        )
+        if not collection_order:
+            return Response({'detail': 'Collection order not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if collection_order.served_at:
+            return Response({'detail': 'Order already served.', 'collection_order': _build_collection_order_payload(collection_order)}, status=status.HTTP_400_BAD_REQUEST)
+        served_at = timezone.now()
+        collection_order.served_by = request.user
+        collection_order.served_at = served_at
+        collection_order.save(update_fields=['served_by', 'served_at'])
+        collection_order.ticket.status = 'redeemed'
+        collection_order.ticket.redeemed_at = served_at
+        collection_order.ticket.save(update_fields=['status', 'redeemed_at'])
+        collection_order.order.status = 'served'
+        collection_order.order.save(update_fields=['status'])
+    add_audit(request.user, 'serve_collection_order', 'collection_order', str(collection_order.id), f"ticket={collection_order.ticket.ticket_id}, order_number={collection_order.order_number}, {_client_context(request)}")
+    return Response({'detail': f'Order {collection_order.order_number} marked as served.', 'collection_order': _build_collection_order_payload(collection_order)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ticket_status(request, ticket_id):
+    suspension = _ensure_not_suspended(request.user)
+    if suspension:
+        return suspension
+    ticket = MealTicket.objects.select_related('order__user', 'order__meal', 'order__slot').filter(ticket_id=ticket_id).first()
+    if not ticket:
+        return Response({'detail': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
+    if request.user.role == 'student' and ticket.order.user_id != request.user.id:
+        return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+    return Response(_ticket_payload(ticket.order, ticket))
 
 
 @api_view(['GET'])
@@ -1711,20 +1971,22 @@ def served_meals(request):
     if role_error:
         return role_error
     orders = (
-        Order.objects.filter(status='served')
-        .select_related('user', 'meal', 'mealticket')
-        .order_by('-created_at')[:50]
+        CollectionOrder.objects.filter(served_at__isnull=False)
+        .select_related('student', 'order')
+        .order_by('-served_at')[:50]
     )
     return Response([
         {
-            'order_id': order.id,
-            'order_ref': order.order_ref,
-            'student_name': order.user.full_name,
-            'student_email': order.user.email,
-            'meal': order.meal.name,
+            'order_id': order.order.id,
+            'order_ref': order.order.order_ref,
+            'order_number': order.order_number,
+            'student_name': order.student.full_name,
+            'student_email': order.student.email,
+            'meal': order.meal_name,
+            'meal_type': order.meal_type,
             'quantity': order.quantity,
-            'total_amount': float(order.total_amount),
-            'served_at': order.mealticket.redeemed_at.isoformat() if getattr(order, 'mealticket', None) and order.mealticket.redeemed_at else None,
+            'total_amount': float(order.price_paid),
+            'served_at': order.served_at.isoformat() if order.served_at else None,
         }
         for order in orders
     ])

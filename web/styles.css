@@ -4913,6 +4913,64 @@ a { color: inherit; }
   color: #b42318;
 }
 
+.hit-order-number-box {
+  width: 100%;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  padding: 28px;
+  background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
+  border: 1px solid #dbe4f3;
+  border-radius: 22px;
+  text-align: center;
+}
+
+.hit-order-number-box strong {
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  line-height: 1;
+  color: #12307a;
+}
+
+.hit-order-number-box span {
+  max-width: 24rem;
+  color: #5a6c8d;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.hit-collection-order {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #dbe4f3;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.hit-collection-order__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.hit-collection-order__meta strong {
+  font-size: 1.2rem;
+  color: #12307a;
+}
+
+.hit-collection-order__meta span {
+  color: #5a6c8d;
+  font-weight: 600;
+}
+
+.hit-collection-order__details {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+}
+
 @keyframes scanner-success-pulse {
   0% { box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.26), 0 18px 34px rgba(21, 128, 61, 0.22); }
   70% { box-shadow: 0 0 0 18px rgba(21, 128, 61, 0.02), 0 18px 34px rgba(21, 128, 61, 0.18); }
@@ -6030,6 +6088,45 @@ a { color: inherit; }
 .hit-away-logout-banner.is-active {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+.hit-payment-grid {
+  align-items: start;
+}
+
+.hit-payment-summary {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #d8e0ef;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.hit-payment-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #12336f;
+  font-weight: 700;
+}
+
+.hit-payment-method-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hit-btn-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .hit-payment-method-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Final compact login layout */

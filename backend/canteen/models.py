@@ -56,7 +56,12 @@ class WalletLedgerEntry(models.Model):
 
 
 class PaymentTransaction(models.Model):
-    STATUS_CHOICES = (('pending', 'Pending'), ('succeeded', 'Succeeded'), ('failed', 'Failed'))
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('succeeded', 'Succeeded'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    )
     PURPOSE_CHOICES = (('wallet_topup', 'Wallet Top Up'), ('order_payment', 'Order Payment'))
 
     tx_id = models.CharField(max_length=64, unique=True, db_index=True)
@@ -125,7 +130,7 @@ class Order(models.Model):
 
 
 class MealTicket(models.Model):
-    STATUS_CHOICES = (('issued', 'Issued'), ('redeemed', 'Redeemed'), ('expired', 'Expired'))
+    STATUS_CHOICES = (('issued', 'Issued'), ('scanned', 'Scanned'), ('redeemed', 'Redeemed'), ('expired', 'Expired'))
 
     ticket_id = models.CharField(max_length=64, unique=True, db_index=True)
     order = models.OneToOneField(Order, on_delete=models.CASCADE)
@@ -134,6 +139,28 @@ class MealTicket(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='issued')
     expires_at = models.DateTimeField()
     redeemed_at = models.DateTimeField(null=True, blank=True)
+
+
+class CollectionOrder(models.Model):
+    order_number = models.CharField(max_length=16)
+    service_date = models.DateField(db_index=True)
+    ticket = models.OneToOneField(MealTicket, on_delete=models.CASCADE)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collection_orders')
+    meal_name = models.CharField(max_length=120)
+    meal_type = models.CharField(max_length=80)
+    quantity = models.IntegerField(default=1)
+    price_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    special_notes = models.CharField(max_length=255, blank=True, default='')
+    scanned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='scanned_collection_orders')
+    scanned_at = models.DateTimeField(default=timezone.now)
+    served_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='served_collection_orders')
+    served_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = (('service_date', 'order_number'),)
+        ordering = ('-scanned_at',)
 
 
 class AuditLog(models.Model):
