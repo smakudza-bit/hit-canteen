@@ -354,6 +354,7 @@ def _ticket_payload(order, ticket):
         'order_id': order.id,
         'order_ref': order.order_ref,
         'status': order.status,
+        'created_at': order.created_at.isoformat() if order.created_at else None,
         'ticket_id': ticket.ticket_id,
         'ticket_token': ticket.token,
         'ticket_qr_svg': ticket.qr_svg,

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cart | HIT Canteen</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260506d" />
+  <title>Meal Payment | HIT Canteen</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20260507c" />
 </head>
 <body data-page="student-cart" class="hit-ui">
   <div class="hit-shell">
@@ -15,48 +15,81 @@
           <span class="hit-logo-lockup__text">Harare Institute<br>of Technology</span>
         </div>
         <div class="hit-topbar__meta">
-          <h1>Order Summary</h1>
-          <p>Review selected items before payment</p>
+          <h1>Meal Payment</h1>
+          <p>Confirm your meal, choose collection time, and pay before your QR ticket is issued.</p>
         </div>
       </div>
-      <a class="hit-chip" href="/student-menu/">Continue Browsing</a>
+      <a class="hit-chip" href="/student-menu/">Back to Menu</a>
     </header>
 
     <main class="hit-main hit-stack">
-      <section class="hit-grid-2">
-        <section class="hit-card">
+      <section class="hit-grid-2 hit-payment-grid">
+        <section class="hit-card hit-stack">
           <div class="hit-section-head">
             <div>
-              <h2>Selected Items</h2>
-              <p class="hit-muted">Everything you are about to pay for.</p>
+              <h2>Order Summary</h2>
+              <p class="hit-muted">Review your selected meal items before payment.</p>
             </div>
           </div>
+
           <div id="cart-list" class="hit-list"></div>
-        </section>
-
-        <section class="hit-card">
-          <div class="hit-section-head">
-            <div>
-              <h2>Checkout</h2>
-              <p class="hit-muted">Confirm your meal and pay using your account balance only.</p>
-            </div>
-          </div>
-
           <div id="cart-chart" class="hit-list-card">Cart summary by item</div>
 
-          <div class="hit-list-row">
-            <strong>Total</strong>
-            <strong id="cart-total">Total: $0.00</strong>
+          <div class="hit-payment-summary">
+            <div class="hit-payment-summary__row">
+              <span>Total Amount</span>
+              <strong id="cart-total">Total: $0.00</strong>
+            </div>
+            <div class="hit-payment-summary__row">
+              <span>Wallet Balance</span>
+              <strong id="cart-wallet-balance">Balance: $0.00</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="hit-card hit-stack">
+          <div class="hit-section-head">
+            <div>
+              <h2>Payment Details</h2>
+              <p class="hit-muted">Pick a collection time, choose how you want to pay, and complete payment securely.</p>
+            </div>
           </div>
 
-          <div class="hit-list-row">
-            <strong>Available Balance</strong>
-            <strong id="cart-wallet-balance">Balance: $0.00</strong>
+          <div class="hit-field">
+            <label class="hit-label" for="cart-slot-id">Pickup Slot</label>
+            <select id="cart-slot-id" class="hit-input">
+              <option value="">Loading pickup slots...</option>
+            </select>
+            <p id="cart-slot-summary" class="hit-muted">Choose Lunch or Supper for collection.</p>
           </div>
+
+          <div class="hit-field">
+            <label class="hit-label">Payment Method</label>
+            <div class="hit-method-grid hit-payment-method-grid">
+              <button class="hit-method-card selected" type="button" data-cart-payment-method="wallet">
+                <strong>Pay with Wallet</strong>
+                <span class="hit-muted">Use your available HIT wallet balance directly.</span>
+              </button>
+              <button class="hit-method-card" type="button" data-cart-payment-method="mobile_money">
+                <strong>Pay with EcoCash</strong>
+                <span class="hit-muted">Use your EcoCash number and confirm the payment on your phone.</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="hit-field">
+            <label class="hit-label" for="cart-mobile-money-phone">EcoCash Phone Number</label>
+            <input id="cart-mobile-money-phone" class="hit-input" type="tel" placeholder="Enter EcoCash phone number" hidden />
+          </div>
+
+          <p id="cart-payment-note" class="hit-muted">Your wallet balance will be charged immediately if it covers the total.</p>
 
           <div class="hit-actions-row">
-            <button id="wallet-cart-btn" class="hit-btn-gold" type="button">Pay with Account Balance</button>
+            <button id="cart-pay-now-btn" class="hit-btn" type="button">Pay Now</button>
+            <a href="/student-add-money/" class="hit-btn-secondary hit-btn-link">Top Up Wallet</a>
+            <button id="cart-view-qr-btn" class="hit-btn-secondary" type="button">View QR Ticket</button>
           </div>
+
           <p id="order-status" class="status-msg"></p>
         </section>
       </section>
@@ -65,6 +98,6 @@
     {% include 'partials/student-bottom-nav.html' %}
   </div>
 
-  <script src="/static/app.js?v=20260506d"></script>
+  <script src="/static/app.js?v=20260507c"></script>
 </body>
 </html>

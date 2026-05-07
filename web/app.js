@@ -983,6 +983,18 @@ async function loadMyTickets() {
   }
 }
 
+async function loadLatestTickets() {
+  await loadMyTickets();
+  latestTickets = (Array.isArray(latestTickets) ? latestTickets : [])
+    .slice()
+    .sort((a, b) => {
+      const aSort = a?.collection_order?.scanned_at || a?.created_at || a?.expires_at || "";
+      const bSort = b?.collection_order?.scanned_at || b?.created_at || b?.expires_at || "";
+      return new Date(bSort || 0).getTime() - new Date(aSort || 0).getTime();
+    });
+  return latestTickets;
+}
+
 function renderStaffOrders(orders) {
     const list = id("staff-orders-list");
     const chart = id("staff-orders-chart");
